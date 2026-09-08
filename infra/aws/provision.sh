@@ -56,6 +56,9 @@ aws ecr create-repository --repository-name "${ECR_REPO_NAME}" --region "${AWS_R
 echo "==> 4. Configurar en GitHub: variables de repositorio (no secretos — OIDC no usa credenciales de larga duración)"
 echo "    gh variable set AWS_DEPLOY_ROLE_ARN --body arn:aws:iam::${ACCOUNT_ID}:role/github-actions-ecs-role"
 echo "    gh variable set AWS_REGION --body ${AWS_REGION}"
+echo "    gh variable set ECS_EXECUTION_ROLE_ARN --body arn:aws:iam::${ACCOUNT_ID}:role/ecsTaskExecutionRole"
+echo "    gh variable set ECS_INFRASTRUCTURE_ROLE_ARN --body arn:aws:iam::${ACCOUNT_ID}:role/ecsInfrastructureRoleForExpressServices"
+echo "    gh secret set ORDERS_API_KEY --body \$(openssl rand -hex 16)"
 echo "    (una vez configuradas, ci.yml y deploy-prod.yml dejan de saltarse los jobs de AWS automáticamente)"
 
 echo "==> 5. Crear el servicio ECS Express Mode (ejecutar DESPUÉS de que exista al menos una imagen int-<sha> en ECR)"
