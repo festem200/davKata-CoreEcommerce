@@ -11,7 +11,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "npm run dev -w @core-ecommerce/backend",
+    "dev": "concurrently -n backend,frontend -c blue,green \"cross-env PORT=8080 npm run dev -w @core-ecommerce/backend\" \"npm run dev -w @core-ecommerce/frontend\"",
     "build": "npm run build -w @core-ecommerce/contracts && npm run build -w @core-ecommerce/backend && npm run build -w @core-ecommerce/frontend",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
@@ -19,6 +19,8 @@
     "test:coverage": "npm run test:coverage --workspaces --if-present"
   },
   "devDependencies": {
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
     "typescript": "^5.7.2",
     "vitest": "^3.2.4"
   }
