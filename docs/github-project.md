@@ -2,6 +2,8 @@
 
 El repositorio usa Issues para requisitos y tareas, milestones para agrupar una entrega y GitHub Projects para visualizar el flujo. El Project es un recurso de GitHub vinculado al repositorio, no un archivo versionado dentro del código.
 
+Project actual: [Core E-Commerce | Delivery](https://github.com/users/festem200/projects/1).
+
 ## Convenciones
 
 - `type:user-story`: requisito funcional expresado desde el usuario.
@@ -9,7 +11,7 @@ El repositorio usa Issues para requisitos y tareas, milestones para agrupar una 
 - `area:domain`, `area:backend`, `area:frontend`, `area:data`, `area:devops`, `area:documentation`: área afectada.
 - `priority:must`, `priority:should`, `priority:could`: prioridad relativa.
 
-El estado se administra en el campo `Status` del Project: `Backlog`, `Ready`, `In progress`, `In review` y `Done`. El milestone `v1.0 | Prueba técnica` representa la entrega; no sustituye al estado diario del tablero.
+El estado se administra en el campo `Status` del Project: `Todo`, `In Progress` y `Done` (opciones predeterminadas de GitHub). El milestone `v1.0 | Prueba técnica` representa la entrega; no sustituye al estado diario del tablero.
 
 ## Flujo de trabajo
 
