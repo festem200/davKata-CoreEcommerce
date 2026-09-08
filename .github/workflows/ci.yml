@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [integration, laboratory]
+    branches: [integration, laboratory, main]
   push:
     branches: [integration]
 
