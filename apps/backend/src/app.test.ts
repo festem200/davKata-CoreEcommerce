@@ -217,6 +217,25 @@ describe("GET /api/v1/orders/:id", () => {
   });
 });
 
+describe("trust proxy", () => {
+  it("se activa en producción para que el rate limiting confíe en X-Forwarded-For detrás del ALB", () => {
+    const originalEnv = process.env["NODE_ENV"];
+    process.env["NODE_ENV"] = "production";
+
+    try {
+      const app = createApp(buildDependencies());
+      expect(app.get("trust proxy")).toBe(1);
+    } finally {
+      process.env["NODE_ENV"] = originalEnv;
+    }
+  });
+
+  it("permanece desactivado fuera de producción", () => {
+    const app = createApp(buildDependencies());
+    expect(app.get("trust proxy")).toBeFalsy();
+  });
+});
+
 describe("estáticos del frontend (build de producción)", () => {
   let frontendDistPath: string;
 

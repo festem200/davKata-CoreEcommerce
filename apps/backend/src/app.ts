@@ -36,6 +36,14 @@ export function createApp(deps: AppDependencies): Express {
   const app = express();
 
   app.disable("x-powered-by");
+  // Detrás de un balanceador (ECS Express Mode usa un ALB compartido), sin
+  // esto Express no confía en X-Forwarded-For y el rate limiting termina
+  // viendo todo el tráfico externo como una sola IP. Solo se activa en
+  // producción: en dev/tests, sin proxy real de por medio, confiar en el
+  // header dejaría que cualquier cliente falsifique su propia IP.
+  if (process.env["NODE_ENV"] === "production") {
+    app.set("trust proxy", 1);
+  }
   app.use(helmet());
   app.use(express.json({ limit: REQUEST_BODY_SIZE_LIMIT }));
   app.use(correlationId());
