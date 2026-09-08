@@ -15,7 +15,7 @@ GA desde noviembre de 2025, **reemplazo oficial de AWS App Runner** (que dejó d
 | Archivo | Para qué |
 |---|---|
 | `provision.sh` | Todos los comandos de aprovisionamiento, en orden, parametrizados por `ACCOUNT_ID`/`AWS_REGION`. No se auto-ejecuta al clonar el repo. |
-| `trust-policy-github-oidc.json` | Trust policy del rol que asumen los workflows de GitHub Actions — **restringida por rama** (`sub` limita a `refs/heads/main` y `refs/heads/integration`, así un PR de un fork no puede desplegar aunque ejecute el workflow). |
+| `trust-policy-github-oidc.json` | Trust policy del rol que asumen los workflows de GitHub Actions — **restringida por rama** (`sub` limita a `refs/heads/main` y `refs/heads/integration`, así un PR de un fork no puede desplegar aunque ejecute el workflow). El `sub` usa comodines (`festem200*/davKata-CoreEcommerce*`) en vez del formato exacto `owner/repo`: GitHub califica el claim con los IDs numéricos inmutables de cuenta/repositorio (`repo:festem200@<id>/davKata-CoreEcommerce@<id>:ref:...`) cuando la cuenta tuvo un cambio de nombre en su historia — se confirmó vía CloudTrail (`errorCode: AccessDenied` en `AssumeRoleWithWebIdentity`) al ejecutar el pipeline real. |
 | `ecs-task-execution-trust-policy.json` | Trust policy de `ecsTaskExecutionRole` (el rol que ECS usa para arrancar la tarea: pull de ECR, logs). |
 | `ecs-infrastructure-trust-policy.json` | Trust policy de `ecsInfrastructureRoleForExpressServices` (el rol que Express Mode usa para crear el ALB, el servicio, el autoescalado). |
 
