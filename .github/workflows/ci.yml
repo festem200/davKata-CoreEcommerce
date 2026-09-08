@@ -87,5 +87,10 @@ jobs:
           context: .
           file: infra/Dockerfile
           push: true
+          # int-latest es el puntero que promueve deploy-prod.yml: los merge
+          # commits de integration→laboratory→main cambian de sha en cada
+          # salto, así que el sha de `main` nunca coincide con el de esta
+          # imagen — int-latest desacopla la promoción de esa continuidad.
           tags: |
             ${{ steps.ecr-login.outputs.registry }}/core-ecommerce:int-${{ github.sha }}
+            ${{ steps.ecr-login.outputs.registry }}/core-ecommerce:int-latest
