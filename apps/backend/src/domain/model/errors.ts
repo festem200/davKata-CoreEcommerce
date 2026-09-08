@@ -28,3 +28,10 @@ export class CouponExpiredError extends Error {
     this.name = "CouponExpiredError";
   }
 }
+
+export class OrderNotFoundError extends Error {
+  constructor(public readonly orderId: string) {
+    super(`La orden '${orderId}' no existe`);
+    this.name = "OrderNotFoundError";
+  }
+}
