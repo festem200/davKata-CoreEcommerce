@@ -13,6 +13,7 @@ import { InMemoryOrderRepository } from "./infrastructure/persistence/memory/InM
 import { InMemoryProductRepository } from "./infrastructure/persistence/memory/InMemoryProductRepository.js";
 import { PostgresOrderRepository } from "./infrastructure/persistence/postgres/PostgresOrderRepository.js";
 import { PostgresProductRepository } from "./infrastructure/persistence/postgres/PostgresProductRepository.js";
+import { applySchema, seedProductsIfEmpty } from "./infrastructure/persistence/postgres/schema.js";
 
 const env = loadEnv();
 
@@ -33,6 +34,8 @@ async function createRepositories(): Promise<{
       }
       const { Pool } = await import("pg");
       const pool = new Pool({ connectionString: env.DATABASE_URL });
+      await applySchema(pool);
+      await seedProductsIfEmpty(pool, CATALOG);
       return {
         productRepository: new PostgresProductRepository(pool),
         orderRepository: new PostgresOrderRepository(pool),
@@ -63,6 +66,7 @@ async function main(): Promise<void> {
     calculateQuoteUseCase: new CalculateQuoteUseCase(productRepository, discountEngine),
     checkoutUseCase: new CheckoutUseCase(productRepository, orderRepository, discountEngine),
     ordersApiKey: env.ORDERS_API_KEY,
+    frontendDistPath: "./public",
   };
 
   const app = createApp(dependencies);

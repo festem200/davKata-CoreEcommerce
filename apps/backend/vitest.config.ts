@@ -14,6 +14,7 @@ export default defineConfig({
       reporter: ["text", "html"],
       exclude: [
         "vitest.config.ts",
+        "tsup.config.ts",
         "src/main.ts",
         "src/infrastructure/persistence/**/contract.test.ts",
         // El adaptador Postgres requiere una base de datos real: se
@@ -23,6 +24,7 @@ export default defineConfig({
         // evaluador con el driver `json` por defecto).
         "src/infrastructure/persistence/postgres/Postgres*.ts",
         "src/infrastructure/persistence/postgres/testDatabase.ts",
+        "src/infrastructure/persistence/postgres/schema.ts",
         "**/*.d.ts",
       ],
       thresholds: {

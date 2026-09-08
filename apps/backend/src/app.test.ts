@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
 import request from "supertest";
 import { type AppDependencies, createApp } from "./app.js";
 import { CalculateQuoteUseCase } from "./application/CalculateQuoteUseCase.js";
@@ -211,5 +214,34 @@ describe("GET /api/v1/orders/:id", () => {
 
     expect(orderResponse.status).toBe(200);
     expect(orderResponse.body.id).toBe(checkoutResponse.body.id);
+  });
+});
+
+describe("estáticos del frontend (build de producción)", () => {
+  let frontendDistPath: string;
+
+  afterEach(() => {
+    if (frontendDistPath) {
+      rmSync(frontendDistPath, { recursive: true, force: true });
+    }
+  });
+
+  it("sirve index.html tanto en / como en rutas desconocidas (SPA fallback), pero no en /api", async () => {
+    frontendDistPath = mkdtempSync(join(tmpdir(), "core-ecommerce-frontend-dist-"));
+    writeFileSync(join(frontendDistPath, "index.html"), "<html><body>Soultec</body></html>");
+
+    const app = createApp(buildDependencies({ frontendDistPath }));
+
+    const root = await request(app).get("/");
+    expect(root.status).toBe(200);
+    expect(root.text).toContain("Soultec");
+
+    const unknownRoute = await request(app).get("/carrito");
+    expect(unknownRoute.status).toBe(200);
+    expect(unknownRoute.text).toContain("Soultec");
+
+    const apiRoute = await request(app).get("/api/v1/products");
+    expect(apiRoute.status).toBe(200);
+    expect(Array.isArray(apiRoute.body)).toBe(true);
   });
 });
