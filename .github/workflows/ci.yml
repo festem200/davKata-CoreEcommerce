@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [integration, laboratory]
+  push:
+    branches: [integration]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Lint · Typecheck · Tests · Cobertura
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: core_ecommerce
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5433/core_ecommerce
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests + cobertura (≥80% bloqueante, incluye la suite de contrato con Postgres real)
+        run: npm run test:coverage
+
+      - name: Validar que la imagen Docker construye (sin publicarla)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/Dockerfile
+          push: false
+
+  build-and-push:
+    name: Build y push a ECR (int-<sha>)
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/integration' && vars.AWS_DEPLOY_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar credenciales AWS (OIDC, sin secretos de larga duración)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login en ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build y push (build once, deploy many — este artefacto se promueve, no se reconstruye)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.ecr-login.outputs.registry }}/core-ecommerce:int-${{ github.sha }}

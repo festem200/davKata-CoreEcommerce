@@ -1,0 +1,63 @@
+name: Deploy Lab (verificación pre-producción)
+
+on:
+  pull_request:
+    branches: [laboratory]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    name: Build + smoke test del contenedor en el runner
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build de la imagen (misma que se promovería a producción)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/Dockerfile
+          push: false
+          load: true
+          tags: core-ecommerce:smoke-test
+
+      - name: Levantar Postgres + app y probar los endpoints clave
+        run: |
+          set -e
+          docker network create smoke-test-net
+
+          docker run -d --name smoke-postgres --network smoke-test-net \
+            -e POSTGRES_DB=core_ecommerce -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres \
+            postgres:16-alpine
+
+          for i in $(seq 1 30); do
+            docker exec smoke-postgres pg_isready -U postgres && break
+            sleep 1
+          done
+
+          docker run -d --name smoke-app --network smoke-test-net -p 8080:8080 \
+            -e PERSISTENCE_DRIVER=postgres \
+            -e DATABASE_URL=postgres://postgres:postgres@smoke-postgres:5432/core_ecommerce \
+            -e ORDERS_API_KEY=smoke-test-key \
+            core-ecommerce:smoke-test
+
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8080/health && break
+            sleep 1
+          done
+
+          curl -sf http://localhost:8080/health
+          curl -sf http://localhost:8080/api/v1/products | grep -q '"id":"p1"'
+
+      - name: Logs del contenedor (diagnóstico si algo falla)
+        if: failure()
+        run: docker logs smoke-app || true
+
+      - name: Limpieza
+        if: always()
+        run: |
+          docker rm -f smoke-app smoke-postgres 2>/dev/null || true
+          docker network rm smoke-test-net 2>/dev/null || true
