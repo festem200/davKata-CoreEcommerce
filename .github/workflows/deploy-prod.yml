@@ -2,7 +2,7 @@ name: Deploy Prod
 
 # "Build once, deploy many": esta pipeline NUNCA reconstruye la imagen.
 # Promueve por retag el artefacto que ya se construyó y probó en
-# `integration` (tag int-<sha>) — es, bit a bit, el mismo binario.
+# `integration` (tag int-latest) — es, bit a bit, el mismo binario.
 on:
   push:
     branches: [main]
@@ -35,13 +35,17 @@ jobs:
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Retag int-<sha> → prod-<sha> y latest (sin reconstruir)
+      - name: Retag int-latest → prod-<sha> y latest (sin reconstruir)
+        # Se promueve int-latest, no int-<sha del commit de merge en main>:
+        # los merge commits de integration→laboratory→main cambian de sha en
+        # cada salto, así que el sha de este push a main nunca coincide con
+        # el sha que ci.yml usó al construir en integration.
         env:
           REGISTRY: ${{ steps.ecr-login.outputs.registry }}
         run: |
-          docker pull "$REGISTRY/core-ecommerce:int-${{ github.sha }}"
-          docker tag "$REGISTRY/core-ecommerce:int-${{ github.sha }}" "$REGISTRY/core-ecommerce:prod-${{ github.sha }}"
-          docker tag "$REGISTRY/core-ecommerce:int-${{ github.sha }}" "$REGISTRY/core-ecommerce:latest"
+          docker pull "$REGISTRY/core-ecommerce:int-latest"
+          docker tag "$REGISTRY/core-ecommerce:int-latest" "$REGISTRY/core-ecommerce:prod-${{ github.sha }}"
+          docker tag "$REGISTRY/core-ecommerce:int-latest" "$REGISTRY/core-ecommerce:latest"
           docker push "$REGISTRY/core-ecommerce:prod-${{ github.sha }}"
           docker push "$REGISTRY/core-ecommerce:latest"
 
