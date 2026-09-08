@@ -36,10 +36,19 @@ export function allocateProportionally(
     return [];
   }
 
+  if (totalToAllocate === 0) {
+    return weights.map(() => 0);
+  }
+
   const totalWeight = sumCents(weights);
 
-  if (totalWeight === 0 || totalToAllocate === 0) {
-    return weights.map(() => 0);
+  if (totalWeight === 0) {
+    // No hay ninguna línea con peso > 0 pero igual hay algo que repartir:
+    // no existe una distribución proporcional posible, así que todo va a
+    // la última línea. La alternativa (devolver ceros) rompería la
+    // invariante que esta función promete: la suma repartida SIEMPRE debe
+    // igualar el total, sin excepción.
+    return weights.map((_, index) => (index === weights.length - 1 ? totalToAllocate : 0));
   }
 
   const allocations = weights.map((weight) => Math.floor((totalToAllocate * weight) / totalWeight));

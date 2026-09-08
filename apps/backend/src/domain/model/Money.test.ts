@@ -48,8 +48,8 @@ describe("allocateProportionally", () => {
     expect(allocateProportionally(0, [10, 20, 30])).toEqual([0, 0, 0]);
   });
 
-  it("devuelve ceros cuando todos los pesos son 0, sin dividir por cero", () => {
-    expect(allocateProportionally(500, [0, 0])).toEqual([0, 0]);
+  it("si todos los pesos son 0 pero hay algo que repartir, lo asigna todo a la última línea (nunca deja de cuadrar)", () => {
+    expect(allocateProportionally(500, [0, 0])).toEqual([0, 500]);
   });
 
   it("devuelve un arreglo vacío para pesos vacíos", () => {
