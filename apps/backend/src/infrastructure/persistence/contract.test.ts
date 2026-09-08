@@ -10,9 +10,19 @@ import { JsonOrderRepository } from "./json/JsonOrderRepository.js";
 import { JsonProductRepository } from "./json/JsonProductRepository.js";
 import { InMemoryOrderRepository } from "./memory/InMemoryOrderRepository.js";
 import { InMemoryProductRepository } from "./memory/InMemoryProductRepository.js";
+import { PostgresOrderRepository } from "./postgres/PostgresOrderRepository.js";
+import { PostgresProductRepository } from "./postgres/PostgresProductRepository.js";
+import { connectToTestDatabase, resetOrders, resetProducts } from "./postgres/testDatabase.js";
 
 function tempFilePath(prefix: string): string {
   return join(tmpdir(), `core-ecommerce-contract-${prefix}-${randomUUID()}.json`);
+}
+
+const postgresPool = await connectToTestDatabase();
+if (!postgresPool) {
+  console.warn(
+    "[contract.test.ts] No hay un Postgres disponible en DATABASE_URL — se omite el adaptador 'postgres' de la suite de contrato.",
+  );
 }
 
 /**
@@ -39,11 +49,33 @@ const SEED_PRODUCTS: readonly Product[] = [
 const productRepositoryAdapters: readonly ProductRepositoryAdapter[] = [
   { name: "memory", create: (seed) => new InMemoryProductRepository(seed) },
   { name: "json", create: (seed) => JsonProductRepository.create(tempFilePath("products"), seed) },
+  ...(postgresPool
+    ? [
+        {
+          name: "postgres",
+          create: async (seed: readonly Product[]) => {
+            await resetProducts(postgresPool, seed);
+            return new PostgresProductRepository(postgresPool);
+          },
+        },
+      ]
+    : []),
 ];
 
 const orderRepositoryAdapters: readonly OrderRepositoryAdapter[] = [
   { name: "memory", create: () => new InMemoryOrderRepository() },
   { name: "json", create: () => JsonOrderRepository.create(tempFilePath("orders")) },
+  ...(postgresPool
+    ? [
+        {
+          name: "postgres",
+          create: async () => {
+            await resetOrders(postgresPool);
+            return new PostgresOrderRepository(postgresPool);
+          },
+        },
+      ]
+    : []),
 ];
 
 describe.each(productRepositoryAdapters)("ProductRepository — contrato ($name)", ({ create }) => {
