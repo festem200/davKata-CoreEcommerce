@@ -54,3 +54,13 @@ jobs:
         with:
           service-name: core-ecommerce-prod
           image: ${{ steps.ecr-login.outputs.registry }}/core-ecommerce:prod-${{ github.sha }}
+          execution-role-arn: ${{ vars.ECS_EXECUTION_ROLE_ARN }}
+          infrastructure-role-arn: ${{ vars.ECS_INFRASTRUCTURE_ROLE_ARN }}
+          container-port: 8080
+          health-check-path: /health
+          cpu: 256
+          memory: 512
+          min-task-count: 1
+          max-task-count: 1
+          environment-variables: |
+            [{"name":"PERSISTENCE_DRIVER","value":"json"},{"name":"NODE_ENV","value":"production"},{"name":"ORDERS_API_KEY","value":"${{ secrets.ORDERS_API_KEY }}"}]

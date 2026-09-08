@@ -13,8 +13,8 @@
         },
         "StringLike": {
           "token.actions.githubusercontent.com:sub": [
-            "repo:festem200/davKata-CoreEcommerce:ref:refs/heads/main",
-            "repo:festem200/davKata-CoreEcommerce:ref:refs/heads/integration"
+            "repo:festem200*/davKata-CoreEcommerce*:ref:refs/heads/main",
+            "repo:festem200*/davKata-CoreEcommerce*:ref:refs/heads/integration"
           ]
         }
       }
