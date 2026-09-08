@@ -49,6 +49,10 @@ docker compose up --build
 
 Levanta `postgres` + `app` (una sola imagen que sirve la API y el frontend ya compilado, sin CORS). La app queda en `http://localhost:8080`, con `PERSISTENCE_DRIVER=postgres`. `depends_on: condition: service_healthy` garantiza que el backend no arranca antes que la base esté lista.
 
+## Despliegue en AWS
+
+El IaC de **ECS Express Mode** está en [`infra/aws/`](./infra/aws/README.md) — roles IAM, trust policies, el comando de creación del servicio y el costeo. Documentado y listo para ejecutar; no se corrió en esta entrega por no contar con una cuenta de AWS con credenciales disponibles al momento de construirla. `deploy-prod.yml` ya está escrito contra ese mismo diseño y se activa solo en cuanto exista la variable de repositorio correspondiente.
+
 ## Arquitectura y decisiones de diseño
 
 Ver [`docs/arquitectura.md`](./docs/arquitectura.md): justificación del stack, trade-offs asumidos, cómo se aisló el motor de descuentos de la persistencia y los controladores, los 4 patrones de diseño implementados (Strategy, Factory, Repository/Ports & Adapters, Observer), el mapeo a BIAN, y **el hallazgo matemático de por qué el tope del 35% nunca se activa con el cupón oficial `WELCOME2026`** (máximo real: 27.325%) — junto con el cupón `BLACKFRIDAY40`, agregado al catálogo para poder demostrar la alerta de la HU4 en vivo sin alterar el motor.
@@ -82,6 +86,7 @@ packages/
   contracts/  Esquemas Zod compartidos front↔back (DTOs + validación)
 infra/
   Dockerfile  Multi-stage: build frontend → build backend (tsup) → runtime no-root
+  aws/        IaC de ECS Express Mode — documentado y listo, no ejecutado (ver infra/aws/README.md)
 docs/
   arquitectura.md         Decisiones de diseño, patrones, el hallazgo del 35%
   ia.md                   Gobernanza de IA (§5 del enunciado)
