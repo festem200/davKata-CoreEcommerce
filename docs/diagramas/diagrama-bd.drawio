@@ -1,0 +1,75 @@
+<mxfile host="app.diagrams.net" agent="claude-code" version="24.7.17">
+  <diagram id="db-schema" name="Modelo de datos">
+    <mxGraphModel dx="1400" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Modelo de datos &#8212; adaptador Postgres (schema.sql)" style="text;html=1;align=left;verticalAlign=middle;fontSize=18;fontStyle=1;fontColor=#1A1A1A;" vertex="1" parent="1">
+          <mxGeometry x="60" y="20" width="640" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Los adaptadores &lt;i&gt;memory&lt;/i&gt; y &lt;i&gt;json&lt;/i&gt; implementan el mismo contrato de puertos (ProductRepository / OrderRepository) sin usar estas tablas &#8212; este esquema aplica solo cuando PERSISTENCE_DRIVER=postgres." style="text;html=1;align=left;verticalAlign=middle;fontSize=12;fontColor=#666666;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="50" width="900" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- PRODUCTS TABLE -->
+        <mxCell id="products" value="products" style="swimlane;html=1;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="300" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="products_r1" value="&#128273; id : TEXT &#8212; PK" style="text;html=1;align=left;verticalAlign=middle;spacing=8;fontSize=12;fontStyle=4;" vertex="1" parent="products">
+          <mxGeometry y="30" width="300" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="products_r2" value="name : TEXT" style="text;html=1;align=left;verticalAlign=middle;spacing=8;fontSize=12;" vertex="1" parent="products">
+          <mxGeometry y="62" width="300" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="products_r3" value="category : TEXT" style="text;html=1;align=left;verticalAlign=middle;spacing=8;fontSize=12;" vertex="1" parent="products">
+          <mxGeometry y="94" width="300" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="products_r4" value="unit_price_cents : INTEGER &#8212; CHECK &#8805; 0" style="text;html=1;align=left;verticalAlign=middle;spacing=8;fontSize=12;" vertex="1" parent="products">
+          <mxGeometry y="126" width="300" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="products_r5" value="stock : INTEGER &#8212; CHECK &#8805; 0" style="text;html=1;align=left;verticalAlign=middle;spacing=8;fontSize=12;" vertex="1" parent="products">
+          <mxGeometry y="158" width="300" height="32" as="geometry" />
+        </mxCell>
+
+        <!-- ORDERS TABLE -->
+        <mxCell id="orders" value="orders" style="swimlane;html=1;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="120" width="400" height="222" as="geometry" />
+        </mxCell>
+        <mxCell id="orders_r1" value="&#128273; id : TEXT &#8212; PK" style="text;html=1;align=left;verticalAlign=middle;spacing=8;fontSize=12;fontStyle=4;" vertex="1" parent="orders">
+          <mxGeometry y="30" width="400" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="orders_r2" value="idempotency_key : TEXT &#8212; UNIQUE" style="text;html=1;align=left;verticalAlign=middle;spacing=8;fontSize=12;" vertex="1" parent="orders">
+          <mxGeometry y="62" width="400" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="orders_r3" value="created_at : TIMESTAMPTZ" style="text;html=1;align=left;verticalAlign=middle;spacing=8;fontSize=12;" vertex="1" parent="orders">
+          <mxGeometry y="94" width="400" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="orders_r4" value="cart_lines : JSONB &#8594; [{ productId, quantity }]" style="text;html=1;align=left;verticalAlign=middle;spacing=8;fontSize=12;" vertex="1" parent="orders">
+          <mxGeometry y="126" width="400" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="orders_r5" value="coupon_code : TEXT &#8212; nullable" style="text;html=1;align=left;verticalAlign=middle;spacing=8;fontSize=12;" vertex="1" parent="orders">
+          <mxGeometry y="158" width="400" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="orders_r6" value="quote : JSONB &#8594; QuoteResult (desglose de precio/descuentos)" style="text;html=1;align=left;verticalAlign=middle;spacing=8;fontSize=12;" vertex="1" parent="orders">
+          <mxGeometry y="190" width="400" height="32" as="geometry" />
+        </mxCell>
+
+        <!-- RELATIONSHIP -->
+        <mxCell id="rel1" value="productId (referencia l&#243;gica embebida en JSONB &#8212; sin FK declarada en schema.sql)" style="edges=orthogonal;html=1;dashed=1;dashPattern=6 4;strokeColor=#b85450;endArrow=open;endFill=1;startArrow=none;fontSize=11;fontColor=#b85450;align=center;verticalAlign=bottom;rounded=0;exitX=0;exitY=0.35;exitDx=0;exitDy=0;entryX=1;entryY=0.16;entryDx=0;entryDy=0;" edge="1" parent="1" source="orders" target="products">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- LEGEND -->
+        <mxCell id="legend" value="&lt;b&gt;Por qu&#233; JSONB en vez de tablas normalizadas:&lt;/b&gt; una orden es un agregado de solo-creaci&#243;n (no hay UPDATE de &lt;i&gt;orders&lt;/i&gt; en el dominio) &#8212; el carrito (&lt;i&gt;cart_lines&lt;/i&gt;) y el desglose de precios ya calculado (&lt;i&gt;quote&lt;/i&gt;) se persisten tal como los devuelve el &lt;i&gt;DiscountEngine&lt;/i&gt;, evitando joins innecesarios en lecturas de historial. La integridad de &lt;i&gt;productId&lt;/i&gt; se valida en la capa de aplicaci&#243;n (checkout) antes de crear la orden, no vía FK de base de datos." style="text;html=1;align=left;verticalAlign=top;spacing=10;fontSize=12;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="400" width="900" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="idem_note" value="idempotency_key evita &#243;rdenes duplicadas cuando el cliente reintenta un POST /checkout (header Idempotency-Key)." style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#666666;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="560" y="360" width="400" height="30" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
