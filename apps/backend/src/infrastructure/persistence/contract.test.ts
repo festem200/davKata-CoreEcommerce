@@ -1,10 +1,19 @@
+import { randomUUID } from "node:crypto";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Order } from "../../domain/model/Order.js";
 import type { Product } from "../../domain/model/Product.js";
 import type { OrderRepository } from "../../domain/ports/OrderRepository.js";
 import type { ProductRepository } from "../../domain/ports/ProductRepository.js";
+import { JsonOrderRepository } from "./json/JsonOrderRepository.js";
+import { JsonProductRepository } from "./json/JsonProductRepository.js";
 import { InMemoryOrderRepository } from "./memory/InMemoryOrderRepository.js";
 import { InMemoryProductRepository } from "./memory/InMemoryProductRepository.js";
+
+function tempFilePath(prefix: string): string {
+  return join(tmpdir(), `core-ecommerce-contract-${prefix}-${randomUUID()}.json`);
+}
 
 /**
  * Suite de contrato: se ejecuta contra CADA adaptador de persistencia
@@ -29,10 +38,12 @@ const SEED_PRODUCTS: readonly Product[] = [
 
 const productRepositoryAdapters: readonly ProductRepositoryAdapter[] = [
   { name: "memory", create: (seed) => new InMemoryProductRepository(seed) },
+  { name: "json", create: (seed) => JsonProductRepository.create(tempFilePath("products"), seed) },
 ];
 
 const orderRepositoryAdapters: readonly OrderRepositoryAdapter[] = [
   { name: "memory", create: () => new InMemoryOrderRepository() },
+  { name: "json", create: () => JsonOrderRepository.create(tempFilePath("orders")) },
 ];
 
 describe.each(productRepositoryAdapters)("ProductRepository — contrato ($name)", ({ create }) => {
