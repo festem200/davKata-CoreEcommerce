@@ -1,0 +1,52 @@
+name: Deploy Prod
+
+# "Build once, deploy many": esta pipeline NUNCA reconstruye la imagen.
+# Promueve por retag el artefacto que ya se construyó y probó en
+# `integration` (tag int-<sha>) — es, bit a bit, el mismo binario.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  promote-and-deploy:
+    name: Retag (prod-<sha> + latest) y desplegar
+    runs-on: ubuntu-latest
+    # Se activa solo cuando F6 ya provisionó el rol de IAM (OIDC) y el
+    # registro ECR. Mientras esa variable de repositorio no exista, este
+    # job se salta en vez de fallar — main puede seguir recibiendo
+    # promociones sin que el pipeline reporte un error de infraestructura
+    # que todavía no le corresponde a esta rama arreglar.
+    if: vars.AWS_DEPLOY_ROLE_ARN != ''
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar credenciales AWS (OIDC, sin secretos de larga duración)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login en ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Retag int-<sha> → prod-<sha> y latest (sin reconstruir)
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+        run: |
+          docker pull "$REGISTRY/core-ecommerce:int-${{ github.sha }}"
+          docker tag "$REGISTRY/core-ecommerce:int-${{ github.sha }}" "$REGISTRY/core-ecommerce:prod-${{ github.sha }}"
+          docker tag "$REGISTRY/core-ecommerce:int-${{ github.sha }}" "$REGISTRY/core-ecommerce:latest"
+          docker push "$REGISTRY/core-ecommerce:prod-${{ github.sha }}"
+          docker push "$REGISTRY/core-ecommerce:latest"
+
+      - name: Desplegar en ECS Express Mode
+        uses: aws-actions/amazon-ecs-deploy-express-service@v1
+        with:
+          service-name: core-ecommerce-prod
+          image: ${{ steps.ecr-login.outputs.registry }}/core-ecommerce:prod-${{ github.sha }}

@@ -1,0 +1,27 @@
+{
+  "name": "core-ecommerce",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Core E-Commerce Checkout con motor de descuentos acumulativos - Prueba técnica Especialista I Open Banking",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,green \"cross-env PORT=8080 npm run dev -w @core-ecommerce/backend\" \"npm run dev -w @core-ecommerce/frontend\"",
+    "build": "npm run build -w @core-ecommerce/frontend && npm run build -w @core-ecommerce/backend",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:coverage": "npm run test:coverage --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.4"
+  }
+}
