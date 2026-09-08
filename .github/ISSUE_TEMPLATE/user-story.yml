@@ -1,0 +1,47 @@
+name: Historia de usuario
+description: Registrar una necesidad de negocio con criterios de aceptación verificables.
+title: "HU: "
+labels:
+  - type:user-story
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Usa esta plantilla para una historia de usuario. Si el trabajo ya existe, declara que la trazabilidad es retrospectiva y enlaza la evidencia real.
+  - type: textarea
+    id: historia
+    attributes:
+      label: Historia
+      description: Escribe la historia en formato Como..., quiero..., para....
+      placeholder: Como..., quiero..., para...
+    validations:
+      required: true
+  - type: textarea
+    id: criterios
+    attributes:
+      label: Criterios de aceptación
+      description: Enumera comportamientos observables y comprobables.
+      placeholder: |
+        - [ ] Dado..., cuando..., entonces...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: evidencia
+    attributes:
+      label: Evidencia
+      description: Enlaza PRs, tests, documentación o capturas que demuestren el cumplimiento.
+      placeholder: |
+        - PR:
+        - Tests:
+        - Documentación:
+    validations:
+      required: true
+  - type: textarea
+    id: notas
+    attributes:
+      label: Notas de trazabilidad
+      description: Declara supuestos, contradicciones del enunciado o si el registro se creó después de implementar.
+      placeholder: "Registro prospectivo o retrospectivo, con la fecha y el motivo."
+    validations:
+      required: false
