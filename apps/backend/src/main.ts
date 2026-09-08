@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { createApp, type AppDependencies } from "./app.js";
 import { CalculateQuoteUseCase } from "./application/CalculateQuoteUseCase.js";
 import { CheckoutUseCase } from "./application/CheckoutUseCase.js";
