@@ -1,17 +1,12 @@
-import { readFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import type { Product } from "../../../domain/model/Product.js";
-
-const SCHEMA_PATH = join(dirname(fileURLToPath(import.meta.url)), "schema.sql");
+import { applySchema } from "./schema.js";
 
 /**
  * Se usa SOLO en tests: intenta conectar a un Postgres real y, si lo logra,
- * garantiza el esquema y limpia las tablas antes de cada caso. Si no hay
- * Postgres disponible (el evaluador no corrió `docker compose up`), los
- * tests de este adaptador se saltan en vez de fallar — el driver por
- * defecto (`json`) no depende de esto.
+ * garantiza el esquema. Si no hay Postgres disponible (el evaluador no
+ * corrió `docker compose up`), los tests de este adaptador se saltan en
+ * vez de fallar — el driver por defecto (`json`) no depende de esto.
  */
 export async function connectToTestDatabase(): Promise<Pool | null> {
   const connectionString =
@@ -25,20 +20,7 @@ export async function connectToTestDatabase(): Promise<Pool | null> {
     return null;
   }
 
-  // Lock de asesoría: varios archivos de test conectan en paralelo y cada
-  // uno intenta crear el esquema. Sin este lock, dos `CREATE TABLE IF NOT
-  // EXISTS` concurrentes pueden chocar en los catálogos internos de
-  // Postgres (carrera real de DDL, no un bug de la app).
-  const schema = await readFile(SCHEMA_PATH, "utf-8");
-  const SCHEMA_LOCK_ID = 727_001;
-  const client = await pool.connect();
-  try {
-    await client.query("SELECT pg_advisory_lock($1)", [SCHEMA_LOCK_ID]);
-    await client.query(schema);
-  } finally {
-    await client.query("SELECT pg_advisory_unlock($1)", [SCHEMA_LOCK_ID]);
-    client.release();
-  }
+  await applySchema(pool);
 
   return pool;
 }

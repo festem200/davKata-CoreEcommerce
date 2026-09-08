@@ -12,7 +12,7 @@
   },
   "scripts": {
     "dev": "concurrently -n backend,frontend -c blue,green \"cross-env PORT=8080 npm run dev -w @core-ecommerce/backend\" \"npm run dev -w @core-ecommerce/frontend\"",
-    "build": "npm run build -w @core-ecommerce/contracts && npm run build -w @core-ecommerce/backend && npm run build -w @core-ecommerce/frontend",
+    "build": "npm run build -w @core-ecommerce/frontend && npm run build -w @core-ecommerce/backend",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",

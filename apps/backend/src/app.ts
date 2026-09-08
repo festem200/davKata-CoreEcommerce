@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import express, { type Express } from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
@@ -18,6 +20,12 @@ export interface AppDependencies {
   readonly calculateQuoteUseCase: CalculateQuoteUseCase;
   readonly checkoutUseCase: CheckoutUseCase;
   readonly ordersApiKey: string | undefined;
+  /**
+   * Directorio con el build de producción del frontend (`vite build`).
+   * Un único artefacto sirve API + estáticos: una sola imagen, una sola
+   * URL, cero CORS. En desarrollo se omite (Vite corre aparte con HMR).
+   */
+  readonly frontendDistPath?: string;
 }
 
 const REQUEST_BODY_SIZE_LIMIT = "100kb";
@@ -41,6 +49,18 @@ export function createApp(deps: AppDependencies): Express {
   app.use("/api/v1/cart/quote", createQuoteRouter(deps.calculateQuoteUseCase));
   app.use("/api/v1/checkout", createCheckoutRouter(deps.checkoutUseCase));
   app.use("/api/v1/orders", createOrdersRouter(deps.orderRepository, deps.ordersApiKey));
+
+  if (deps.frontendDistPath && existsSync(deps.frontendDistPath)) {
+    const frontendDistPath = deps.frontendDistPath;
+    app.use(express.static(frontendDistPath));
+    app.use((req, res, next) => {
+      if (req.method !== "GET" || req.path.startsWith("/api/")) {
+        next();
+        return;
+      }
+      res.sendFile(join(frontendDistPath, "index.html"));
+    });
+  }
 
   app.use(errorHandler());
 
