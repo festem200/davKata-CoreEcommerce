@@ -1,6 +1,8 @@
 # Guion de sustentación — Core E-Commerce Checkout
 
 > El enunciado (§6) plantea 20 minutos; este guion se preparó para 30 con margen de recorte, siguiendo el orden exacto de clics de la demo. Los tres bloques y su minutaje son los del enunciado.
+>
+> **Versión navegable:** [`docs/sustentacion.html`](./sustentacion.html) (ábrelo en el navegador) tiene el mismo contenido como una presentación deslizable, pensada para proyectar durante la defensa en vez de leer este Markdown en vivo.
 
 ## Antes de empezar (checklist de 2 minutos)
 
