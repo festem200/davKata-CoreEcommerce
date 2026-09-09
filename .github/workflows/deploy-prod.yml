@@ -63,4 +63,4 @@ jobs:
           min-task-count: 1
           max-task-count: 1
           environment-variables: |
-            [{"name":"DATABASE_URL","value":"${{ secrets.DATABASE_URL }}"},{"name":"NODE_ENV","value":"production"},{"name":"ORDERS_API_KEY","value":"${{ secrets.ORDERS_API_KEY }}"}]
+            [{"name":"DATABASE_URL","value":"${{ secrets.DATABASE_URL }}"},{"name":"NODE_ENV","value":"production"},{"name":"DATABASE_SSL","value":"true"},{"name":"ORDERS_API_KEY","value":"${{ secrets.ORDERS_API_KEY }}"}]
