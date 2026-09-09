@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { ProductDto } from "@core-ecommerce/contracts";
+import { Trash2 } from "lucide-react";
 import { useCart } from "../state/CartContext.js";
 
 export function CartPanel({ products }: { products: readonly ProductDto[] }) {
@@ -24,7 +25,12 @@ export function CartPanel({ products }: { products: readonly ProductDto[] }) {
 
           return (
             <li key={line.productId} className="cart-line">
-              <span className="cart-line__name">{product?.name ?? line.productId}</span>
+              <div className="cart-line__product">
+                {product?.imageUrl ? (
+                  <img className="cart-line__thumbnail" src={product.imageUrl} alt="" aria-hidden="true" />
+                ) : null}
+                <span className="cart-line__name">{product?.name ?? line.productId}</span>
+              </div>
               <input
                 type="number"
                 min={0}
@@ -38,7 +44,7 @@ export function CartPanel({ products }: { products: readonly ProductDto[] }) {
         })}
       </ul>
       <button type="button" className="button-ghost" onClick={clearCart}>
-        Vaciar carrito
+        <Trash2 size={16} aria-hidden="true" /> Vaciar carrito
       </button>
     </section>
   );

@@ -6,12 +6,12 @@ import type { ProductDto } from "@core-ecommerce/contracts";
 import { CartProvider, useCart } from "../state/CartContext.js";
 import { CartPanel } from "./CartPanel.js";
 
-const PRODUCTS: ProductDto[] = [{ id: "p1", name: "Audífonos Bluetooth", category: "Tecnología", unitPriceCents: 4500, stock: 10 }];
+const PRODUCTS: ProductDto[] = [{ id: 1, name: "Audífonos Bluetooth", category: "Tecnología", unitPriceCents: 4500, stock: 10 }];
 
 function Seed() {
   const { addProduct } = useCart();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => addProduct("p1"), []);
+  useEffect(() => addProduct(1), []);
   return null;
 }
 
