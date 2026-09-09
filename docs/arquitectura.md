@@ -14,30 +14,11 @@
 
 | Decisión | Elección | Por qué |
 |---|---|---|
-| Monorepo | **npm workspaces** | Nativo en npm 11 (ya instalado). Cero herramientas nuevas que instalar, configurar o defender frente al evaluador. |
-| Backend | **Express 5 + TypeScript estricto** | Framework dominado por el autor; permite tratarlo explícitamente como un *detalle de infraestructura* (un adaptador HTTP) en vez de que defina la forma del dominio. |
-| Arquitectura | **Hexagonal (Ports & Adapters)** | El área de Open Banking del autor migra hacia multinube/multirregión. Este proyecto demuestra el mismo argumento a escala pequeña: el dominio no sabe dónde corre ni cómo se persiste. |
-| Frontend | **React 19 + Vite + TypeScript** | Vitest en front y back → un solo test runner, un solo comando de cobertura (`npm run test:coverage`). |
-| Dinero | **Enteros en centavos (`Cents`)** ([`Money.ts`](../apps/backend/src/domain/model/Money.ts)) | `0.1 + 0.2 !== 0.3` en punto flotante. Un core de pagos no puede darse ese lujo. |
-| Persistencia | **Postgres**, único adaptador tras el puerto `ProductRepository`/`OrderRepository` — sin variable de entorno para elegir otro | El dominio y los casos de uso solo conocen el puerto, nunca `pg` directamente; eso ya demuestra el patrón Repository sin necesidad de mantener implementaciones paralelas que nadie usa en producción. `docker compose up` levanta todo con un solo comando. |
-| Errores | **RFC 9457 Problem Details** ([`problemDetails.ts`](../apps/backend/src/infrastructure/http/problemDetails.ts)) | Estándar de error usado en Open Banking (Berlin Group / OBIE). Un error 500 nunca filtra detalles internos al cliente. |
+| Backend | **Express 5 + TypeScript estricto** | Manejo del framwork ya lo habia implementado para el proyecto de Agregación Bancaria entonces por tema de tiempo y precision;  |
+| Arquitectura | **Hexagonal (Ports & Adapters)** | Elegi esta arquitectura porque me permite tener separada la logica de las conexions a BD, otras apis o servicios, para el banco y para uno como desarrollador es muy importante que este separada la logica del backend que se quiera usar en un futuro, dado que el banco le esta apuntando al conecpto de multinube. Esta arquitectura se ajustaria muy bien para este y futuros proyectos dentro de la organización.
+| Frontend | **React 19 + Vite + TypeScript** | Use React por velocidad bajo la restricción de tiempo real del proyecto y porque solo se iba a diseñar una pagina de ordenes|
 
-**Estructura de carpetas** (`apps/backend/src/`):
 
-```
-domain/          # PURO — cero imports de Express, pg, ni nada de infraestructura
-  model/         # Money, Product, CartLine, Order, errores tipados
-  pricing/       # DiscountRule (Strategy), DiscountEngine, DiscountRuleFactory
-  ports/         # ProductRepository, OrderRepository (interfaces)
-application/     # CalculateQuoteUseCase, CheckoutUseCase — orquestan dominio + puertos
-infrastructure/  # Todo lo que SÍ conoce el framework
-  http/          # Express: rutas, middlewares, mapeo de errores
-  postgres/      # El único adaptador de persistencia real
-  config/        # catálogo, variables de entorno
-test-support/    # Fakes en memoria de los puertos — SOLO para tests, nunca en producción
-```
-
-La regla de dependencia es unidireccional: `infrastructure` → `application` → `domain`. El dominio no importa nada de las otras dos capas.
 
 ## 2. Trade-offs asumidos
 
@@ -45,10 +26,10 @@ La regla de dependencia es unidireccional: `infrastructure` → `application` �
 |---|---|---|
 | Portabilidad vs. superficie de mantenimiento | Un único adaptador de persistencia (Postgres), no varios intercambiables por variable de entorno | Se probaron 3 (`memory`/`json`/`postgres`) para demostrar el patrón Repository; se eliminaron los dos primeros porque mantener implementaciones paralelas que nadie usa en producción costaba más de lo que aportaban. El puerto (`ProductRepository`/`OrderRepository`) sigue demostrando el desacople — el dominio no conoce `pg` — sin necesitar una segunda implementación real. |
 | Velocidad de entrega vs. rendimiento de cálculo | El motor recalcula todo el carrito en cada cotización, sin memoización | El carrito tiene ≤7 productos; optimizar sería resolver un problema que no existe a esta escala. |
-| Un solo artefacto vs. despliegue independiente de frontend | El backend sirve los estáticos del frontend ya compilados ([`app.ts`](../apps/backend/src/app.ts)) | Cero CORS y una sola URL, a costa de no poder escalar frontend y backend por separado. A escala real iría a CDN (S3 + CloudFront) — documentado como tal. |
+| Un solo artefacto vs. despliegue independiente de frontend | El backend sirve los estáticos del frontend ya compilados ([`app.ts`](../apps/backend/src/app.ts)); un único contenedor se despliega en AWS | No separé frontend y backend en componentes/contenedores independientes porque el objetivo del ejercicio también incluía simular un despliegue continuo real hacia AWS, y separar en dos servicios hubiera significado el doble de pipelines, recursos y tiempo para poder probarlo de verdad en la nube — priorizando eso, que es un conocimiento tan importante para el banco como el código mismo, por encima de la independencia entre módulos. El costo: pierdo algo de esa independencia (no puedo escalar ni desplegar uno sin el otro) y algo de aislamiento de seguridad a nivel de infraestructura entre los dos componentes. Al ser un servicio público sin autenticación de usuarios, ese costo es bajo — no hay una razón fuerte para blindar la comunicación interna entre dos servicios que hoy comparten el mismo proceso. A escala real, con datos sensibles de por medio, sí separaría frontend (CDN, S3 + CloudFront) y backend en servicios independientes. |
 | ORM vs. SQL explícito | `pg` sin ORM en el adaptador Postgres | Más SQL escrito a mano — pero con Ports & Adapters el SQL **debe** vivir dentro del adaptador; un ORM diluiría exactamente el patrón que se quiere demostrar. |
 | Cobertura del adaptador Postgres | Cuenta para el umbral bloqueante del 80% ([`vitest.config.ts`](../apps/backend/vitest.config.ts)) | Es el único adaptador de persistencia y CI ya provisiona un Postgres real (`services.postgres` en `ci.yml`), así que excluirlo escondería justo el código que más importa medir. Solo se excluye `testDatabase.ts` (utilería exclusiva de tests). |
-| ESLint agregado después, no desde el día 1 | Se empezó solo con TypeScript estricto (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, etc.); ESLint 10 (flat config, [`eslint.config.js`](../eslint.config.js)) se sumó más adelante | La decisión inicial fue presupuesto de tiempo — y tuvo un costo real: un linter con `eslint-plugin-react-hooks` habría atrapado en el momento el bug de la corrección #1 en `docs/ia.md` (dispatch durante el render en un test). Al agregarlo, `react-hooks/rules-of-hooks` y `exhaustive-deps` son justamente las 2 reglas que se activaron — el resto del set "recommended" de la v7 del plugin son heurísticas del React Compiler (que este proyecto no usa) y marcaban como error patrones normales de React 19, como `setLoading(true)` síncrono antes de un fetch; se dejaron fuera por la misma razón que las demás decisiones de este documento: no agregar reglas que no se pueden justificar. `npm run lint` corre en CI junto a `typecheck`/`test:coverage`. |
+
 
 ## 3. Cómo se aisló el motor de descuentos de la persistencia y los controladores
 
@@ -123,38 +104,3 @@ expect(result.capApplied).toBe(false);
 
 Cuando el tope se activa, el motor no solo trunca el total: **reconcilia el desglose por línea** (`DiscountEngine.ts`, función `applyMaxDiscountCap`), devolviendo proporcionalmente el excedente a cada línea para que la suma siga cuadrando centavo a centavo — verificado por test y visible en pantalla como "Ajuste por límite máximo de descuento (35%)".
 
-## 6. Alineación con BIAN
-
-[BIAN](https://bian.org) estructura sus APIs semánticas como *Service Domain → Control Record → Behavior Qualifier*, con *action terms* (`Initiate`, `Evaluate`, `Execute`, `Retrieve`) publicados en OpenAPI.
-
-**Postura honesta:** BIAN es un estándar de la industria **bancaria**, y esto es un e-commerce. Forzar nomenclatura bancaria sobre un carrito de compras sería impostura. Lo que se hace en cambio es adoptar su **semántica y disciplina** (recursos como *control records*, versionado explícito en la ruta, verbos alineados a *action terms*) y documentar aquí el mapeo, señalando expresamente dónde encaja y dónde no:
-
-| Endpoint | Verbo BIAN equivalente | Encaja? |
-|---|---|---|
-| `GET /api/v1/products` | `Retrieve` sobre un *Control Record* de catálogo | Parcial — BIAN no tiene un Service Domain de "catálogo de e-commerce" |
-| `POST /api/v1/cart/quote` | `Evaluate` | Sí — BIAN usa `Evaluate` exactamente para cálculos que no mutan estado |
-| `POST /api/v1/checkout` | `Execute` (sobre un *Control Record* de tipo orden/transacción) | Sí — el Service Domain más cercano sería *"Payment Execution"* o *"Consumer Transaction"* |
-| `GET /api/v1/orders/:id` | `Retrieve` | Sí |
-
-Reconocer los límites de aplicabilidad de un estándar demuestra más criterio que aplicarlo a ciegas sobre un dominio para el que no fue diseñado.
-
-## 7. Seguridad (resumen — detalle en `docs/ia.md`, auditoría con la skill `api-security-audit`)
-
-- Validación con Zod en todos los bordes ([`packages/contracts`](../packages/contracts/src/schemas.ts)); `helmet`, rate limiting, límite de tamaño de body ([`app.ts`](../apps/backend/src/app.ts)).
-- `GET /api/v1/orders/:id` requiere `X-Api-Key` (fail-closed: sin key configurada, se rechaza toda solicitud) — expone qué se compró y por cuánto. Los demás endpoints son públicos porque los consume un navegador anónimo; una API key ahí sería teatro de seguridad (visible en el JavaScript del cliente).
-- `Idempotency-Key` obligatorio en checkout — un reintento por timeout no duplica la orden ni el decremento de stock.
-- SQL siempre parametrizado ([`PostgresProductRepository.ts`](../apps/backend/src/infrastructure/postgres/PostgresProductRepository.ts)).
-- Contenedor con usuario no-root ([`infra/Dockerfile`](../infra/Dockerfile)).
-- Secretos vía `.env` en local / variables de entorno inyectadas en AWS — nunca en el código ni horneados en la imagen.
-- **No hay autenticación de usuarios**: no existe identidad de usuario en el alcance del enunciado. En producción se resolvería con OAuth 2.0 + **FAPI** (Financial-grade API, el perfil de OAuth para Open Banking) — agregarlo aquí sería complejidad sin beneficio demostrable.
-
-## 8. Fuera de alcance (descartes deliberados)
-
-| Descartado | Razón |
-|---|---|
-| Autenticación de usuarios (login, JWT, roles) | No hay identidad de usuario en el alcance del enunciado. Se resolvería con OAuth 2.0 + FAPI en producción. |
-| API key en endpoints públicos | Sería visible en el JavaScript del navegador: teatro de seguridad. Se aplica solo donde protege algo real. |
-| ORM (Prisma, Drizzle) | Con Ports & Adapters el SQL debe vivir dentro del adaptador — es el punto del patrón. |
-| Nomenclatura BIAN literal en las rutas | BIAN es un estándar bancario; esto es un e-commerce. Se documenta el mapeo (§6) en vez de forzar nombres. |
-| Frontend en CDN separado (S3 + CloudFront) | Se prioriza paridad de entornos y una sola superficie de despliegue. |
-| Reglas de ESLint orientadas al React Compiler (`purity`, `immutability`, `set-state-in-render`, etc.) | Este proyecto no usa el React Compiler; esas heurísticas marcan como error patrones normales de React 19 (ver trade-offs, §2). Se mantienen solo `rules-of-hooks` y `exhaustive-deps`. |
