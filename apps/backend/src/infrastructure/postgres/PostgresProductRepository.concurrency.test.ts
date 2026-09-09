@@ -18,11 +18,11 @@ describeIfPostgres("PostgresProductRepository — concurrencia", () => {
     if (!pool) return;
 
     await resetProducts(pool, [
-      { id: "p4", name: "Power bank", category: "Tecnología", unitPriceCents: 3250, stock: 1 },
+      { id: 4, name: "Power bank", category: "Tecnología", unitPriceCents: 3250, stock: 1 },
     ]);
     const repository = new PostgresProductRepository(pool);
 
-    const attempts = Array.from({ length: 10 }, () => repository.decrementStock([{ productId: "p4", quantity: 1 }]));
+    const attempts = Array.from({ length: 10 }, () => repository.decrementStock([{ productId: 4, quantity: 1 }]));
     const results = await Promise.all(attempts);
 
     const successes = results.filter((shortages) => shortages.length === 0);
@@ -31,7 +31,7 @@ describeIfPostgres("PostgresProductRepository — concurrencia", () => {
     expect(successes).toHaveLength(1);
     expect(failures).toHaveLength(9);
 
-    const finalProduct = await repository.findById("p4");
+    const finalProduct = await repository.findById(4);
     expect(finalProduct?.stock).toBe(0);
   });
 });

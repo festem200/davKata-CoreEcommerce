@@ -1,29 +1,275 @@
 import { centsFromDecimal } from "../../domain/model/Money.js";
 import type { Product } from "../../domain/model/Product.js";
-import type { Coupon } from "../../domain/pricing/Coupon.js";
 
 /**
- * Catálogo de demostración: cada producto habilita un caso concreto de la
- * demo en vivo (ver docs/arquitectura.md para el porqué de cada uno).
+ * Catálogo de demostración. Los productos y sus imágenes son datos reales
+ * (no inventados): nombre, marca, precio, descripción e imagen vienen de
+ * la API pública DummyJSON (https://dummyjson.com/products) — hecha
+ * justamente para poblar demos de e-commerce — y las portadas de los
+ * libros de Open Library Covers (https://openlibrary.org/dev/docs/api/covers).
+ * Cada URL de imagen se verificó una por una (HTTP 200) antes de guardarla.
+ *
+ * Categorías con descuento automático de "Tecnología" (10%, ver
+ * CategoryDiscountRule) frente a categorías sin ese descuento (Ropa,
+ * Hogar, Belleza, Deportes, Libros) — a propósito, para que se note la
+ * diferencia al cotizar productos de una y otra.
  */
 export const CATALOG: readonly Product[] = [
-  { id: "p1", name: "Audífonos Bluetooth", category: "Tecnología", unitPriceCents: centsFromDecimal(45.0), stock: 10 },
-  { id: "p2", name: "Teclado mecánico", category: "Tecnología", unitPriceCents: centsFromDecimal(89.9), stock: 5 },
-  { id: "p3", name: 'Monitor 27"', category: "Tecnología", unitPriceCents: centsFromDecimal(249.99), stock: 3 },
-  { id: "p4", name: "Power bank 20.000 mAh", category: "Tecnología", unitPriceCents: centsFromDecimal(32.5), stock: 2 },
-  { id: "p5", name: "Camiseta de algodón", category: "Ropa", unitPriceCents: centsFromDecimal(19.9), stock: 20 },
-  { id: "p6", name: "Termo de acero", category: "Hogar", unitPriceCents: centsFromDecimal(24.0), stock: 8 },
-  { id: "p7", name: "Libro Clean Architecture", category: "Libros", unitPriceCents: centsFromDecimal(38.0), stock: 6 },
-];
+  // Tecnología — SÍ recibe el 10% de CategoryDiscountRule
+  {
+    id: 1,
+    name: "iPhone 13 Pro",
+    category: "Tecnología",
+    unitPriceCents: centsFromDecimal(1099.99),
+    stock: 8,
+    description: "Smartphone de gama alta con sistema de cámaras avanzado, chip de alto rendimiento y pantalla de última generación.",
+    imageUrl: "https://cdn.dummyjson.com/product-images/smartphones/iphone-13-pro/thumbnail.webp",
+    sku: "TEC-001",
+    brand: "Apple",
+  },
+  {
+    id: 2,
+    name: "iPhone 6",
+    category: "Tecnología",
+    unitPriceCents: centsFromDecimal(299.99),
+    stock: 15,
+    description: "Smartphone clásico, compacto y confiable, ideal para quien busca un equipo funcional a buen precio.",
+    imageUrl: "https://cdn.dummyjson.com/product-images/smartphones/iphone-6/thumbnail.webp",
+    sku: "TEC-002",
+    brand: "Apple",
+  },
+  {
+    id: 3,
+    name: "Apple MacBook Pro 14'' Space Grey",
+    category: "Tecnología",
+    unitPriceCents: centsFromDecimal(1999.99),
+    stock: 4,
+    description: "Laptop potente y elegante con chip M1 Pro y pantalla Retina, pensada para trabajo profesional exigente.",
+    imageUrl: "https://cdn.dummyjson.com/product-images/laptops/apple-macbook-pro-14-inch-space-grey/thumbnail.webp",
+    sku: "TEC-003",
+    brand: "Apple",
+  },
+  {
+    id: 4,
+    name: "Asus Zenbook Pro Dual Screen",
+    category: "Tecnología",
+    unitPriceCents: centsFromDecimal(1799.99),
+    stock: 3,
+    description: "Laptop de alto rendimiento con doble pantalla, pensada para productividad y trabajo creativo.",
+    imageUrl: "https://cdn.dummyjson.com/product-images/laptops/asus-zenbook-pro-dual-screen-laptop/thumbnail.webp",
+    sku: "TEC-004",
+    brand: "Asus",
+  },
+  {
+    id: 5,
+    name: "Huawei Matebook X Pro",
+    category: "Tecnología",
+    unitPriceCents: centsFromDecimal(1399.99),
+    stock: 5,
+    description: "Laptop delgada y estilizada con pantalla táctil de alta resolución, ideal para movilidad.",
+    imageUrl: "https://cdn.dummyjson.com/product-images/laptops/huawei-matebook-x-pro/thumbnail.webp",
+    sku: "TEC-005",
+    brand: "Huawei",
+  },
 
-/**
- * Catálogo de cupones, data-driven y con vigencia. `WELCOME2026` es el
- * cupón oficial del enunciado (15%). `BLACKFRIDAY40` se agregó para poder
- * demostrar en vivo la alerta del 35% (HU4) sin alterar el motor — con las
- * reglas oficiales el descuento máximo matemático es 27,325% y el tope
- * nunca se activa (ver docs/arquitectura.md, "Hallazgo del 35%").
- */
-export const COUPONS: ReadonlyMap<string, Coupon> = new Map([
-  ["WELCOME2026", { code: "WELCOME2026", rate: 0.15, expiresAt: null }],
-  ["BLACKFRIDAY40", { code: "BLACKFRIDAY40", rate: 0.4, expiresAt: null }],
-]);
+  // Ropa — NO recibe el descuento de categoría
+  {
+    id: 6,
+    name: "Camisa a Cuadros Azul y Negro",
+    category: "Ropa",
+    unitPriceCents: centsFromDecimal(29.99),
+    stock: 25,
+    description: "Camisa de hombre con patrón clásico a cuadros, cómoda y versátil para ocasiones casuales o semi-formales.",
+    imageUrl: "https://cdn.dummyjson.com/product-images/mens-shirts/blue-%26-black-check-shirt/thumbnail.webp",
+    sku: "ROP-001",
+    brand: "Fashion Trends",
+  },
+  {
+    id: 7,
+    name: "Camisa de Cuadros Escocesa",
+    category: "Ropa",
+    unitPriceCents: centsFromDecimal(34.99),
+    stock: 18,
+    description: "Camisa de hombre atemporal con patrón escocés clásico, un básico versátil para cualquier armario.",
+    imageUrl: "https://cdn.dummyjson.com/product-images/mens-shirts/man-plaid-shirt/thumbnail.webp",
+    sku: "ROP-002",
+    brand: "Classic Wear",
+  },
+  {
+    id: 8,
+    name: "Vestido Azul",
+    category: "Ropa",
+    unitPriceCents: centsFromDecimal(29.99),
+    stock: 20,
+    description: "Vestido elegante en color azul vibrante, cómodo y adecuado para distintas ocasiones.",
+    imageUrl: "https://cdn.dummyjson.com/product-images/tops/blue-frock/thumbnail.webp",
+    sku: "ROP-003",
+  },
+  {
+    id: 9,
+    name: "Vestido Gris",
+    category: "Ropa",
+    unitPriceCents: centsFromDecimal(34.99),
+    stock: 16,
+    description: "Vestido versátil en tono gris neutro, fácil de combinar tanto para el día como para la noche.",
+    imageUrl: "https://cdn.dummyjson.com/product-images/tops/gray-dress/thumbnail.webp",
+    sku: "ROP-004",
+  },
+
+  // Hogar — NO recibe el descuento de categoría
+  {
+    id: 10,
+    name: "Sofá Annibale Colombo",
+    category: "Hogar",
+    unitPriceCents: centsFromDecimal(2499.99),
+    stock: 2,
+    description: "Sofá sofisticado y cómodo, con diseño exquisito y tapizado premium para la sala.",
+    imageUrl: "https://cdn.dummyjson.com/product-images/furniture/annibale-colombo-sofa/thumbnail.webp",
+    sku: "HOG-001",
+    brand: "Annibale Colombo",
+  },
+  {
+    id: 11,
+    name: "Mesa de Noche Cerezo Africano",
+    category: "Hogar",
+    unitPriceCents: centsFromDecimal(299.99),
+    stock: 10,
+    description: "Mesa de noche elegante y funcional, con espacio de almacenamiento y acabado en cerezo africano.",
+    imageUrl: "https://cdn.dummyjson.com/product-images/furniture/bedside-table-african-cherry/thumbnail.webp",
+    sku: "HOG-002",
+    brand: "Furniture Co.",
+  },
+  {
+    id: 12,
+    name: "Columpio Decorativo",
+    category: "Hogar",
+    unitPriceCents: centsFromDecimal(59.99),
+    stock: 9,
+    description: "Columpio decorativo con detalles delicados que añade un toque de elegancia a cualquier espacio.",
+    imageUrl: "https://cdn.dummyjson.com/product-images/home-decoration/decoration-swing/thumbnail.webp",
+    sku: "HOG-003",
+  },
+  {
+    id: 13,
+    name: "Portarretrato Árbol Familiar",
+    category: "Hogar",
+    unitPriceCents: centsFromDecimal(29.99),
+    stock: 14,
+    description: "Portarretrato con múltiples espacios para fotos, ideal para mostrar recuerdos familiares.",
+    imageUrl: "https://cdn.dummyjson.com/product-images/home-decoration/family-tree-photo-frame/thumbnail.webp",
+    sku: "HOG-004",
+  },
+
+  // Belleza — NO recibe el descuento de categoría
+  {
+    id: 14,
+    name: "Máscara de Pestañas Lash Princess",
+    category: "Belleza",
+    unitPriceCents: centsFromDecimal(9.99),
+    stock: 30,
+    description: "Máscara de pestañas voluminizadora y alargadora, de larga duración y libre de crueldad animal.",
+    imageUrl: "https://cdn.dummyjson.com/product-images/beauty/essence-mascara-lash-princess/thumbnail.webp",
+    sku: "BEL-001",
+    brand: "Essence",
+  },
+  {
+    id: 15,
+    name: "Paleta de Sombras con Espejo",
+    category: "Belleza",
+    unitPriceCents: centsFromDecimal(19.99),
+    stock: 22,
+    description: "Paleta de sombras versátil con espejo incorporado, ideal para maquillarse en cualquier lugar.",
+    imageUrl: "https://cdn.dummyjson.com/product-images/beauty/eyeshadow-palette-with-mirror/thumbnail.webp",
+    sku: "BEL-002",
+    brand: "Glamour Beauty",
+  },
+  {
+    id: 16,
+    name: "Polvo Compacto Matificante",
+    category: "Belleza",
+    unitPriceCents: centsFromDecimal(14.99),
+    stock: 26,
+    description: "Polvo suelto de acabado mate, ligero y translúcido, ideal para fijar el maquillaje.",
+    imageUrl: "https://cdn.dummyjson.com/product-images/beauty/powder-canister/thumbnail.webp",
+    sku: "BEL-003",
+    brand: "Velvet Touch",
+  },
+  {
+    id: 17,
+    name: "Chanel Coco Noir Eau de Parfum",
+    category: "Belleza",
+    unitPriceCents: centsFromDecimal(129.99),
+    stock: 7,
+    description: "Fragancia elegante y envolvente, con notas de pomelo, rosa y sándalo. Perfecta para la noche.",
+    imageUrl: "https://cdn.dummyjson.com/product-images/fragrances/chanel-coco-noir-eau-de/thumbnail.webp",
+    sku: "BEL-004",
+    brand: "Chanel",
+  },
+
+  // Deportes — NO recibe el descuento de categoría
+  {
+    id: 18,
+    name: "Balón de Fútbol Americano",
+    category: "Deportes",
+    unitPriceCents: centsFromDecimal(19.99),
+    stock: 12,
+    description: "Balón clásico de fútbol americano, diseñado para lanzar y atajar en cualquier partido.",
+    imageUrl: "https://cdn.dummyjson.com/product-images/sports-accessories/american-football/thumbnail.webp",
+    sku: "DEP-001",
+  },
+  {
+    id: 19,
+    name: "Pelota de Béisbol",
+    category: "Deportes",
+    unitPriceCents: centsFromDecimal(8.99),
+    stock: 40,
+    description: "Pelota de béisbol estándar con cubierta de cuero resistente para lanzar, batear y fildear.",
+    imageUrl: "https://cdn.dummyjson.com/product-images/sports-accessories/baseball-ball/thumbnail.webp",
+    sku: "DEP-002",
+  },
+  {
+    id: 20,
+    name: "Guante de Béisbol",
+    category: "Deportes",
+    unitPriceCents: centsFromDecimal(24.99),
+    stock: 11,
+    description: "Guante protector para jugadores de béisbol, diseñado para atajar con comodidad y control.",
+    imageUrl: "https://cdn.dummyjson.com/product-images/sports-accessories/baseball-glove/thumbnail.webp",
+    sku: "DEP-003",
+  },
+
+  // Libros — NO recibe el descuento de categoría
+  {
+    id: 21,
+    name: "El Hobbit",
+    category: "Libros",
+    unitPriceCents: centsFromDecimal(18.99),
+    stock: 13,
+    description: "La novela clásica de J.R.R. Tolkien sobre la aventura de Bilbo Bolsón más allá de la Comarca.",
+    imageUrl: "https://covers.openlibrary.org/b/isbn/9780618260300-L.jpg",
+    sku: "LIB-001",
+    brand: "J.R.R. Tolkien",
+  },
+  {
+    id: 22,
+    name: "El Principito",
+    category: "Libros",
+    unitPriceCents: centsFromDecimal(12.99),
+    stock: 17,
+    description: "El clásico universal de Antoine de Saint-Exupéry sobre la amistad, la pérdida y la mirada de un niño.",
+    imageUrl: "https://covers.openlibrary.org/b/isbn/9780156012195-L.jpg",
+    sku: "LIB-002",
+    brand: "Antoine de Saint-Exupéry",
+  },
+  {
+    id: 23,
+    name: "The Pragmatic Programmer",
+    category: "Libros",
+    unitPriceCents: centsFromDecimal(42.99),
+    stock: 9,
+    description: "Referencia clásica de buenas prácticas de desarrollo de software, tan vigente hoy como en su publicación.",
+    imageUrl: "https://covers.openlibrary.org/b/isbn/9780201616224-L.jpg",
+    sku: "LIB-003",
+    brand: "Hunt & Thomas",
+  },
+];

@@ -8,11 +8,13 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@core-ecommerce/contracts": "*",
+    "lucide-react": "^1.43.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

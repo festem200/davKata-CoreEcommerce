@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Pool } from "pg";
-import type { Product } from "../../../domain/model/Product.js";
+import type { Product } from "../../domain/model/Product.js";
 
 const SCHEMA_PATH = join(dirname(fileURLToPath(import.meta.url)), "schema.sql");
 const SCHEMA_LOCK_ID = 727_001;
@@ -38,8 +38,18 @@ export async function seedProductsIfEmpty(pool: Pool, seed: readonly Product[]):
 
   for (const product of seed) {
     await pool.query(
-      "INSERT INTO products (id, name, category, unit_price_cents, stock) VALUES ($1, $2, $3, $4, $5)",
-      [product.id, product.name, product.category, product.unitPriceCents, product.stock],
+      `INSERT INTO products (name, category_id, unit_price_cents, stock, description, image_url, sku, brand)
+       VALUES ($1, (SELECT id FROM categories WHERE name = $2), $3, $4, $5, $6, $7, $8)`,
+      [
+        product.name,
+        product.category,
+        product.unitPriceCents,
+        product.stock,
+        product.description ?? null,
+        product.imageUrl ?? null,
+        product.sku ?? null,
+        product.brand ?? null,
+      ],
     );
   }
 }

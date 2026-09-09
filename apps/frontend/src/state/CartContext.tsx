@@ -3,9 +3,9 @@ import { cartReducer, INITIAL_CART_STATE, type CartState } from "./cartReducer.j
 
 export interface CartContextValue {
   readonly state: CartState;
-  readonly addProduct: (productId: string) => void;
-  readonly removeProduct: (productId: string) => void;
-  readonly setQuantity: (productId: string, quantity: number) => void;
+  readonly addProduct: (productId: number) => void;
+  readonly removeProduct: (productId: number) => void;
+  readonly setQuantity: (productId: number, quantity: number) => void;
   readonly clearCart: () => void;
   readonly applyCoupon: (couponCode: string) => void;
   readonly clearCoupon: () => void;

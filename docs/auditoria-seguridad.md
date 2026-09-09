@@ -39,7 +39,6 @@
 ## Hardening recomendado (no son vulnerabilidades, suben el piso de seguridad)
 
 - **Credencial única para `ORDERS_API_KEY`.** Hoy el sistema acepta un solo valor estático; rotarla exige reiniciar el proceso y, en el intervalo, cualquier sistema de backoffice legítimo pierde acceso. Un diseño con una lista de claves válidas (separadas por coma, cada una comparada con `timingSafeEqual`) permitiría publicar la nueva, migrar al consumidor y retirar la vieja sin ventana de caída. Se documenta como mejora futura, no se implementa ahora — agregaría complejidad de configuración que el alcance de la prueba técnica no exige.
-- **Límite de tamaño por archivo en el adaptador `json`.** `data/orders.json` crece indefinidamente con cada checkout, sin rotación ni archivado. Aceptable para una demo/prueba técnica; en producción real este driver no se usaría de todas formas (el plan usa `postgres` en AWS).
 - **Rate limiting diferenciado por endpoint.** Hoy es uniforme (100 req/min/IP) en las cuatro rutas. `POST /api/v1/checkout` (que decrementa stock real) podría beneficiarse de un límite más estricto que `GET /api/v1/products` (solo lectura, cacheable).
 
 ## Verificado y sin hallazgos

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { ProductDto } from "@core-ecommerce/contracts";
+import { Trash2 } from "lucide-react";
 import { useCart } from "../state/CartContext.js";
 
 export function CartPanel({ products }: { products: readonly ProductDto[] }) {
@@ -21,24 +22,44 @@ export function CartPanel({ products }: { products: readonly ProductDto[] }) {
       <ul>
         {state.lines.map((line) => {
           const product = productsById.get(line.productId);
+          const maxAvailable = product?.stock ?? line.quantity;
+          const atStockLimit = line.quantity >= maxAvailable;
 
           return (
             <li key={line.productId} className="cart-line">
-              <span className="cart-line__name">{product?.name ?? line.productId}</span>
-              <input
-                type="number"
-                min={0}
-                value={line.quantity}
-                onChange={(event) => setQuantity(line.productId, Number(event.target.value))}
-                aria-label={`Cantidad de ${product?.name ?? line.productId}`}
-                className="cart-line__quantity"
-              />
+              <div className="cart-line__row">
+                <div className="cart-line__product">
+                  {product?.imageUrl ? (
+                    <img className="cart-line__thumbnail" src={product.imageUrl} alt="" aria-hidden="true" />
+                  ) : null}
+                  <span className="cart-line__name">{product?.name ?? line.productId}</span>
+                </div>
+                <input
+                  type="number"
+                  min={0}
+                  max={maxAvailable}
+                  value={line.quantity}
+                  onChange={(event) => {
+                    const requested = Number(event.target.value);
+                    const safeQuantity = Number.isNaN(requested) ? 0 : requested;
+                    setQuantity(line.productId, Math.min(safeQuantity, maxAvailable));
+                  }}
+                  aria-label={`Cantidad de ${product?.name ?? line.productId}`}
+                  aria-describedby={atStockLimit ? `stock-limit-${line.productId}` : undefined}
+                  className="cart-line__quantity"
+                />
+              </div>
+              {atStockLimit ? (
+                <p id={`stock-limit-${line.productId}`} className="cart-line__stock-warning">
+                  Máximo disponible: {maxAvailable}
+                </p>
+              ) : null}
             </li>
           );
         })}
       </ul>
       <button type="button" className="button-ghost" onClick={clearCart}>
-        Vaciar carrito
+        <Trash2 size={16} aria-hidden="true" /> Vaciar carrito
       </button>
     </section>
   );

@@ -25,15 +25,15 @@ GA desde noviembre de 2025, **reemplazo oficial de AWS App Runner** (que dejó d
 2. `cd infra/aws && ./provision.sh` — crea los roles, el proveedor OIDC, y el repositorio ECR.
 3. Configurar las variables de repositorio en GitHub (comando exacto impreso por el script, paso 4) — a partir de ahí, `ci.yml` empieza a construir y publicar `int-<sha>` en cada push a `integration` automáticamente, sin tocar el workflow.
 4. Promover `integration → laboratory → main` por PR (el flujo normal del repositorio) — el push a `main` dispara `deploy-prod.yml`, que retaggea la imagen ya construida (nunca la reconstruye) y crea el servicio Express Mode la primera vez, o lo actualiza las siguientes.
-5. (Opcional) `aws rds create-db-instance` (comando impreso por el script, paso 6) si se quiere demostrar el adaptador Postgres en producción real en vez de `PERSISTENCE_DRIVER=json`.
+5. `aws rds create-db-instance` (comando impreso por el script, paso 6) — **obligatorio**: el backend ya no tiene un driver de persistencia alternativo, así que `deploy-prod.yml` necesita el secreto `DATABASE_URL` de GitHub apuntando a esta instancia antes de desplegar (si no existe, el contenedor arranca y se cae de inmediato — `env.ts` rechaza el arranque sin `DATABASE_URL`).
 
 ## Costos y advertencia sobre el Free Plan
 
 | Recurso | Costo aproximado |
 |---|---|
 | Fargate (0.25 vCPU / 0.5 GB, 1-2 tareas) | ~US$9-18/mes |
-| RDS `db.t4g.micro` (opcional) | ~US$13/mes |
-| **Total con Postgres** | **~US$22/mes** |
+| RDS `db.t4g.micro` (obligatorio) | ~US$13/mes |
+| **Total** | **~US$22/mes** |
 
 Cubierto por los ~US$200 en créditos del Free Plan (post-julio 2025): US$100 al registrarse + US$100 por completar las 5 tareas de onboarding. Alcanza para ~9 meses.
 
