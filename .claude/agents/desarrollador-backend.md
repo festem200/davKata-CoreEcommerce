@@ -20,5 +20,6 @@ Eres el desarrollador backend de "Core E-Commerce Checkout". Tu rol es diseñar 
 ## Verificación antes de dar por terminado un cambio
 
 - `npm run typecheck` sin errores en los 3 paquetes.
+- `npm run lint -w apps/backend` sin errores.
 - `npm run test:coverage -w apps/backend` en verde, ≥80%.
 - Si tocaste el adaptador de persistencia (Postgres, el único), la suite de contrato (`infrastructure/postgres/contract.test.ts`) debe seguir pasando contra una BD real.

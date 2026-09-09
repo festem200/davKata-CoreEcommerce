@@ -8,6 +8,7 @@ import { connectToTestDatabase, resetOrders, resetProducts } from "./testDatabas
 
 const postgresPool = await connectToTestDatabase();
 if (!postgresPool) {
+  // eslint-disable-next-line no-console -- aviso intencional de que la suite se salta (ver tester-backend.md regla #4), no un debug olvidado
   console.warn(
     "[contract.test.ts] No hay un Postgres disponible en DATABASE_URL — se omite la suite de contrato (requiere Docker/Postgres corriendo).",
   );

@@ -60,11 +60,13 @@ async function main(): Promise<void> {
   const app = createApp(dependencies);
 
   app.listen(env.PORT, () => {
+    // eslint-disable-next-line no-console -- log de arranque, no queda ninguna otra forma de observarlo en este proceso
     console.log(`[backend] escuchando en el puerto ${env.PORT} (persistencia: postgres)`);
   });
 }
 
 main().catch((error: unknown) => {
+  // eslint-disable-next-line no-console -- el proceso está por morir (exitCode 1); no hay otro canal para el error fatal
   console.error("[backend] error fatal al iniciar:", error);
   process.exitCode = 1;
 });
