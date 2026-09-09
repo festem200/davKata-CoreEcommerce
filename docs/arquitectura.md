@@ -1,16 +1,14 @@
 # Arquitectura — Core E-Commerce Checkout
 
-> Responde punto por punto las preguntas de la §4.1 del enunciado (`insumos/`), documenta los 4 patrones de diseño exigidos (mínimo 2) y el hallazgo matemático que define la estrategia de la HU4.
+## Diagramas
 
-## 0. Diagramas
+**Despliegue en AWS** (fuente editable: [`diagrams/diagrama-arquitectura-aws.drawio`](./diagrams/diagrama-arquitectura-aws.drawio))
 
-**Despliegue en AWS** (fuente editable: [`diagramas/diagrama-arquitectura-aws.drawio`](./diagramas/diagrama-arquitectura-aws.drawio))
+![Arquitectura de despliegue en AWS](./diagrams/diagrama-arquitectura-aws.png)
 
-![Arquitectura de despliegue en AWS](./diagramas/diagrama-arquitectura-aws.png)
+**Modelo de datos** (fuente editable: [`diagrams/diagrama-bd.drawio`](./diagrams/diagrama-bd.drawio))
 
-**Modelo de datos** (fuente editable: [`diagramas/diagrama-bd.drawio`](./diagramas/diagrama-bd.drawio))
-
-![Modelo de datos](./diagramas/diagrama-bd.png)
+![Modelo de datos](./diagrams/diagrama-bd.png)
 
 ## 1. ¿Por qué este stack y este diseño de carpetas?
 

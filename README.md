@@ -60,7 +60,7 @@ Ver [`docs/arquitectura.md`](./docs/arquitectura.md): justificación del stack, 
 
 ## Gobernanza de IA
 
-Ver [`docs/ia.md`](./docs/ia.md): los 2 skills usados (`doe-stack`, `api-security-audit`), los 5 agentes con rol y reglas versionados en [`.claude/agents/`](./.claude/agents/) — incluido un `auditor-calidad` adversarial con autoridad para rechazar trabajo — y la bitácora de co-creación con 6 correcciones reales documentadas en el momento en que ocurrieron.
+Ver [`docs/ia.md`](./docs/ia.md): los 2 skills usados (`doe-stack`, `api-security-audit`), los 5 agentes con rol y reglas versionados en [`.claude/agents/`](./.claude/agents/) — incluido un `auditor-calidad` adversarial con autoridad para rechazar trabajo — y la bitácora de co-creación con 7 correcciones reales documentadas en el momento en que ocurrieron.
 
 La auditoría de seguridad completa (ejecutada de verdad contra el código, con 2 hallazgos reales ya corregidos) está en [`docs/auditoria-seguridad.md`](./docs/auditoria-seguridad.md).
 
@@ -77,7 +77,7 @@ GET  /                     Frontend (build de producción, solo cuando existe ap
 
 Los errores siguen **RFC 9457 Problem Details** (`Content-Type: application/problem+json`).
 
-Documentación interactiva completa: [`docs/openapi-viewer.html`](./docs/openapi-viewer.html) (abrir directamente en el navegador) — spec fuente en [`docs/openapi.yaml`](./docs/openapi.yaml).
+Spec completa (OpenAPI 3.1): [`docs/openapi/openapi.json`](./docs/openapi/openapi.json) — pégala en [editor.swagger.io](https://editor.swagger.io) para verla renderizada.
 
 ## Estructura del monorepo
 
@@ -94,9 +94,9 @@ docs/
   arquitectura.md         Decisiones de diseño, patrones, el hallazgo del 35% (con los diagramas embebidos)
   ia.md                   Gobernanza de IA (§5 del enunciado)
   auditoria-seguridad.md  Auditoría real ejecutada con la skill api-security-audit
-  openapi.yaml            Especificación OpenAPI 3.1 de la API
-  openapi-viewer.html     Documentación interactiva de la API — abrir directamente en el navegador
-  diagramas/              Diagramas fuente (.drawio, abren con doble clic) + su versión .png
+  openapi/openapi.json    Especificación OpenAPI 3.1 de la API
+  diagrams/               Diagramas fuente (.drawio, abren con doble clic) + su versión .png
+  reference/              Material de referencia (plan maestro de la prueba técnica, fases F0-F7)
 .claude/
   agents/     5 agentes de gobernanza de IA (versionados para auditoría)
   skills/     doe-stack — metodología propia de desarrollo
