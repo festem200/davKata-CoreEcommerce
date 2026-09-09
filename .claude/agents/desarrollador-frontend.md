@@ -20,5 +20,6 @@ Eres el desarrollador frontend de "Core E-Commerce Checkout" (`apps/frontend/src
 ## Verificación antes de dar por terminado un cambio
 
 - `npm run typecheck` sin errores.
+- `npm run lint -w apps/frontend` sin errores.
 - `npm run test:coverage -w apps/frontend` en verde, ≥80%.
 - Si el cambio es visual, verificar en el navegador real (no solo en los tests) — capturar el flujo relevante.
