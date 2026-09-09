@@ -27,7 +27,6 @@ Copia `.env.example` a `.env` en `apps/backend/` si quieres personalizarlas:
 |---|---|---|
 | `PORT` | `8080` | Puerto del backend |
 | `DATABASE_URL` | — | **Obligatoria.** Cadena de conexión a Postgres — el backend no arranca sin ella |
-| `ORDERS_API_KEY` | — | Requerida por `GET /api/v1/orders/:id` (header `X-Api-Key`). Sin configurar, ese endpoint rechaza toda solicitud (fail-closed) |
 | `NODE_ENV` | `development` | `production` activa `trust proxy` (ver `docs/auditoria-seguridad.md`) |
 
 ## Comandos
@@ -44,15 +43,24 @@ npm run test:coverage   # tests + reporte de cobertura (umbral 80% bloqueante)
 
 ## Correr todo con un solo comando (Docker)
 
+Copiar, pegar, Enter — funciona igual la primera vez que la enésima (clona si no existe, o sincroniza a la última versión de `main` si ya existe, y reconstruye la imagen desde cero sobre ese código):
+
 ```bash
-docker compose up --build
+git clone https://github.com/festem200/davKata-CoreEcommerce.git 2>/dev/null || true
+cd davKata-CoreEcommerce
+git fetch origin && git checkout main && git reset --hard origin/main
+docker compose down
+docker compose build --no-cache
+docker compose up -d
 ```
+
+`git reset --hard origin/main` deja el código exactamente como está en `main`, sin importar qué había antes en esa carpeta (un clon viejo, cambios locales, lo que sea) — por eso el mismo bloque sirve para instalar por primera vez o para actualizar. `--no-cache` fuerza a reconstruir la imagen entera sobre ese código, sin quedarse con una capa vieja en caché.
 
 Levanta `postgres` + `app` (una sola imagen que sirve la API y el frontend ya compilado, sin CORS) — sin instalar Node ni nada más en la máquina. La app queda en `http://localhost:8080`. `depends_on: condition: service_healthy` garantiza que el backend no arranca antes que la base esté lista.
 
 ## Despliegue en AWS
 
-El IaC de **ECS Express Mode** está en [`infra/aws/`](./infra/aws/README.md) — roles IAM, trust policies, el comando de creación del servicio y el costeo. Documentado y listo para ejecutar; no se corrió en esta entrega por no contar con una cuenta de AWS con credenciales disponibles al momento de construirla. `deploy-prod.yml` ya está escrito contra ese mismo diseño y se activa solo en cuanto exista la variable de repositorio correspondiente.
+El IaC de **ECS Express Mode** está en [`infra/aws/`](./infra/aws/README.md) — roles IAM, trust policies, el comando de creación del servicio y el costeo. **Se ejecutó y está desplegado de verdad**: `main` corre hoy en ECS Fargate contra una RDS Postgres real, servido detrás de un ALB. `deploy-prod.yml` retagea la imagen ya construida en `integration` (build once, deploy many) y actualiza el servicio en cada push a `main` — sin reconstruir nada.
 
 ## Arquitectura y decisiones de diseño
 
@@ -89,7 +97,7 @@ packages/
   contracts/  Esquemas Zod compartidos front↔back (DTOs + validación)
 infra/
   Dockerfile  Multi-stage: build frontend → build backend (tsup) → runtime no-root
-  aws/        IaC de ECS Express Mode — documentado y listo, no ejecutado (ver infra/aws/README.md)
+  aws/        IaC de ECS Express Mode — desplegado y corriendo (ver infra/aws/README.md)
 docs/
   arquitectura.md         Decisiones de diseño, patrones, el hallazgo del 35% (con los diagramas embebidos)
   ia.md                   Gobernanza de IA (§5 del enunciado)
@@ -100,8 +108,6 @@ docs/
 .claude/
   agents/     5 agentes de gobernanza de IA (versionados para auditoría)
   skills/     doe-stack — metodología propia de desarrollo
-insumos/
-  Prueba Técnica Full Stack - Core E-Commerce.md   Enunciado original
 ```
 
 ## Flujo de ramas
