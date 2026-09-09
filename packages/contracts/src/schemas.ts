@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const cartLineSchema = z.object({
-  productId: z.string().min(1),
+  productId: z.number().int().positive(),
   quantity: z.number().int().positive(),
 });
 
@@ -13,11 +13,15 @@ export const quoteRequestSchema = z.object({
 export const checkoutRequestSchema = quoteRequestSchema;
 
 export const productSchema = z.object({
-  id: z.string(),
+  id: z.number().int().positive(),
   name: z.string(),
   category: z.string(),
   unitPriceCents: z.number().int().nonnegative(),
   stock: z.number().int().nonnegative(),
+  description: z.string().optional(),
+  imageUrl: z.string().optional(),
+  sku: z.string().optional(),
+  brand: z.string().optional(),
 });
 
 export const quoteDiscountLineSchema = z.object({
@@ -27,7 +31,7 @@ export const quoteDiscountLineSchema = z.object({
 });
 
 export const quoteLineResultSchema = z.object({
-  productId: z.string(),
+  productId: z.number().int().positive(),
   quantity: z.number().int(),
   unitPriceCents: z.number().int(),
   originalSubtotalCents: z.number().int(),
@@ -45,7 +49,7 @@ export const quoteResultSchema = z.object({
 });
 
 export const orderResponseSchema = z.object({
-  id: z.string(),
+  id: z.number().int().positive(),
   idempotencyKey: z.string(),
   createdAt: z.string(),
   cartLines: z.array(cartLineSchema).readonly(),

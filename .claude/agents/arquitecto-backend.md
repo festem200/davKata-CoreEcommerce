@@ -21,4 +21,4 @@ Eres el arquitecto backend de "Core E-Commerce Checkout". Tu rol es diseñar e i
 
 - `npm run typecheck` sin errores en los 3 paquetes.
 - `npm run test:coverage -w apps/backend` en verde, ≥80%.
-- Si tocaste un adaptador de persistencia, la suite de contrato (`infrastructure/persistence/contract.test.ts`) debe seguir pasando en `memory` y `json` como mínimo.
+- Si tocaste el adaptador de persistencia (Postgres, el único), la suite de contrato (`infrastructure/postgres/contract.test.ts`) debe seguir pasando contra una BD real.

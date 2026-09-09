@@ -10,7 +10,12 @@ export function createOrdersRouter(orderRepository: OrderRepository, ordersApiKe
   router.get("/:id", requireApiKey(ordersApiKey), async (req, res, next) => {
     try {
       const rawId = req.params["id"];
-      const orderId = Array.isArray(rawId) ? (rawId[0] ?? "") : (rawId ?? "");
+      const rawIdValue = Array.isArray(rawId) ? (rawId[0] ?? "") : (rawId ?? "");
+      const orderId = Number(rawIdValue);
+      if (!Number.isInteger(orderId)) {
+        throw new OrderNotFoundError(orderId);
+      }
+
       const order = await orderRepository.findById(orderId);
       if (!order) {
         throw new OrderNotFoundError(orderId);

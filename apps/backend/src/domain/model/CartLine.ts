@@ -1,4 +1,4 @@
 export interface CartLine {
-  readonly productId: string;
+  readonly productId: number;
   readonly quantity: number;
 }

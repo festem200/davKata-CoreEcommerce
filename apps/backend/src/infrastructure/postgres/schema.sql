@@ -46,8 +46,35 @@ INSERT INTO categories (name, slug, description) VALUES
   ('Tecnología', 'tecnologia', 'Dispositivos electrónicos y accesorios tecnológicos'),
   ('Ropa', 'ropa', 'Prendas de vestir'),
   ('Hogar', 'hogar', 'Artículos para el hogar'),
-  ('Libros', 'libros', 'Libros y material de lectura')
+  ('Libros', 'libros', 'Libros y material de lectura'),
+  ('Belleza', 'belleza', 'Cosméticos, cuidado personal y fragancias'),
+  ('Deportes', 'deportes', 'Artículos y accesorios deportivos')
 ON CONFLICT (name) DO NOTHING;
+
+-- ============================================================
+-- coupons
+-- ------------------------------------------------------------
+-- Se crea aquí (junto a categories, antes de orders) por la misma razón:
+-- orders.coupon_id la referencia por FK, así que la tabla padre debe
+-- existir primero. Antes los cupones vivían quemados en un Map en
+-- memoria (infrastructure/config/catalog.ts). No lo pide el enunciado,
+-- pero un cupón es exactamente el tipo de dato que no debería estar
+-- hardcodeado: cambiar su porcentaje o desactivarlo hoy exige un deploy
+-- nuevo. El driver Postgres los lee de aquí; memory/json (sin BD real
+-- detrás) siguen usando el Map de catalog.ts.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS coupons (
+  id SERIAL PRIMARY KEY,
+  code TEXT NOT NULL UNIQUE,
+  discount_rate DOUBLE PRECISION NOT NULL CHECK (discount_rate > 0 AND discount_rate <= 1),
+  expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+INSERT INTO coupons (code, discount_rate, expires_at) VALUES
+  ('WELCOME2026', 0.15, NULL),
+  ('BLACKFRIDAY40', 0.40, NULL)
+ON CONFLICT (code) DO NOTHING;
 
 -- ============================================================
 -- products
@@ -145,15 +172,51 @@ END $$;
 -- orders
 -- ------------------------------------------------------------
 -- id: INTEGER autoincremental (antes TEXT con randomUUID()).
+-- coupon_id: FK a coupons(id) — antes era coupon_code TEXT suelto, sin
+-- ninguna relación real: nada impedía guardar una orden con un código de
+-- cupón que no existiera en el catálogo. Igual que category_id en
+-- products, la FK va sobre la clave sustituta (id) y no sobre el código
+-- de texto, aunque el dominio/la API sigan hablando de "couponCode" (el
+-- adaptador Postgres traduce con un JOIN, ver PostgresOrderRepository).
 -- ============================================================
 CREATE TABLE IF NOT EXISTS orders (
   id SERIAL PRIMARY KEY,
   idempotency_key TEXT NOT NULL UNIQUE,
   created_at TIMESTAMPTZ NOT NULL,
-  cart_lines JSONB NOT NULL,
-  coupon_code TEXT,
+  cart_lines JSONB,
+  coupon_id INTEGER REFERENCES coupons(id),
   quote JSONB NOT NULL
 );
+
+-- cart_lines queda nullable: PostgresOrderRepository ya no la escribe (las
+-- líneas viven en order_items, ver más abajo). No se elimina la columna
+-- todavía para no perder las órdenes ya guardadas ahí antes de este cambio.
+ALTER TABLE orders ALTER COLUMN cart_lines DROP NOT NULL;
+
+-- ------------------------------------------------------------
+-- Migración idempotente para una BD ya creada con el esquema anterior
+-- (coupon_code TEXT suelto, sin FK). No afecta instalaciones nuevas.
+-- ------------------------------------------------------------
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'orders' AND column_name = 'coupon_id'
+  ) THEN
+    ALTER TABLE orders ADD COLUMN coupon_id INTEGER REFERENCES coupons(id);
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'orders' AND column_name = 'coupon_code'
+  ) THEN
+    UPDATE orders o SET coupon_id = c.id
+    FROM coupons c
+    WHERE o.coupon_code = c.code AND o.coupon_id IS NULL;
+
+    ALTER TABLE orders DROP COLUMN coupon_code;
+  END IF;
+END $$;
 
 -- Ciclo de vida real y ya observable de una orden en este sistema (hoy toda
 -- orden creada equivale a 'completed'); no se agregan direcciones/pagos/
@@ -209,10 +272,9 @@ END $$;
 -- calcula por join contra products: el precio de una orden ya
 -- facturada no puede cambiar si mañana cambia el precio del producto.
 --
--- ADVERTENCIA (alcance BD-only, a petición explícita del usuario): esta
--- tabla queda SIN USAR hasta que el usuario pida explícitamente ajustar
--- el backend. orders.cart_lines NO se elimina todavía — sigue siendo la
--- fuente real que usa CheckoutUseCase.
+-- Actualización 2026-09-08: ya en uso. PostgresOrderRepository.save() la
+-- llena dentro de la misma transacción que crea la orden; orders.cart_lines
+-- sigue existiendo (nullable) pero ya no se escribe desde ese adaptador.
 -- ============================================================
 CREATE TABLE IF NOT EXISTS order_items (
   id SERIAL PRIMARY KEY,

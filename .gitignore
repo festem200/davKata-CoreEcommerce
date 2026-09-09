@@ -4,4 +4,3 @@ coverage/
 .env
 *.local
 .DS_Store
-apps/backend/data/

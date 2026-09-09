@@ -1,9 +1,16 @@
-import type { CartLine } from "../../../domain/model/CartLine.js";
-import type { Product } from "../../../domain/model/Product.js";
-import type { ProductRepository, StockShortage } from "../../../domain/ports/ProductRepository.js";
+import type { CartLine } from "../domain/model/CartLine.js";
+import type { Product } from "../domain/model/Product.js";
+import type { ProductRepository, StockShortage } from "../domain/ports/ProductRepository.js";
 
-export class InMemoryProductRepository implements ProductRepository {
-  private readonly productsById: Map<string, Product>;
+/**
+ * Test double en memoria del puerto ProductRepository — SOLO para tests
+ * unitarios rápidos (app.test.ts, CheckoutUseCase.test.ts, etc.), nunca se
+ * usa en producción. El único adaptador real es PostgresProductRepository
+ * (ver infrastructure/postgres); no existe una variable de
+ * entorno para elegir otro.
+ */
+export class FakeProductRepository implements ProductRepository {
+  private readonly productsById: Map<number, Product>;
 
   constructor(initialProducts: readonly Product[]) {
     this.productsById = new Map(initialProducts.map((product) => [product.id, { ...product }]));
@@ -13,7 +20,7 @@ export class InMemoryProductRepository implements ProductRepository {
     return [...this.productsById.values()];
   }
 
-  async findById(productId: string): Promise<Product | null> {
+  async findById(productId: number): Promise<Product | null> {
     return this.productsById.get(productId) ?? null;
   }
 
