@@ -1,6 +1,6 @@
-# Despliegue en AWS — ECS Express Mode (documentado, no ejecutado)
+# Despliegue en AWS — ECS Express Mode (ejecutado, en producción)
 
-> **Estado de esta entrega:** el IaC de esta carpeta está escrito y listo para ejecutarse, pero **no se corrió** — no había una cuenta de AWS con credenciales disponibles al momento de construir esta entrega. El §7 del enunciado no exige un despliegue real; esto queda como evidencia de diseño de infraestructura, revisable línea por línea. `deploy-prod.yml` y el job `build-and-push` de `ci.yml` ya están escritos contra este mismo diseño y se activan solos en cuanto exista la variable de repositorio `AWS_DEPLOY_ROLE_ARN` (ver paso 4 de `provision.sh`) — no requieren ningún cambio de código el día que se ejecuten.
+> **Estado de esta entrega:** el IaC de esta carpeta se ejecutó de verdad — no quedó solo como diseño en papel. Los 6 pasos de "Pasos para ejecutar" de más abajo ya se corrieron: roles IAM, proveedor OIDC, ECR, RDS (`core-ecommerce-prod`), y las variables/secretos de GitHub configurados. `deploy-prod.yml` y el job `build-and-push` de `ci.yml` están activos y desplegando en cada promoción real a `main`/`integration`.
 
 ## Por qué contenedor y no Lambda
 
