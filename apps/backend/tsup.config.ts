@@ -15,6 +15,6 @@ export default defineConfig({
     // schema.ts resuelve su ruta relativa a su propio archivo en tiempo de
     // ejecución; al bundlear todo en dist/main.js esa ruta pasa a apuntar
     // a dist/, así que el .sql se copia junto al bundle.
-    copyFileSync("src/infrastructure/persistence/postgres/schema.sql", "dist/schema.sql");
+    copyFileSync("src/infrastructure/postgres/schema.sql", "dist/schema.sql");
   },
 });

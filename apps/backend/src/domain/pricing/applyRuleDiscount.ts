@@ -18,7 +18,7 @@ export function applyRuleDiscount(
   const discountTotalCents = floorPercentageOf(eligibleTotalCents, rate);
   const perLineDiscounts = allocateProportionally(discountTotalCents, eligibleWeights);
 
-  const perLineAmountsCents = new Map<string, Cents>();
+  const perLineAmountsCents = new Map<number, Cents>();
   const lines: PricedLine[] = context.lines.map((line, index) => {
     const lineDiscountCents = perLineDiscounts[index] ?? 0;
 

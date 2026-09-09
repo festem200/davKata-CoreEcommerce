@@ -1,0 +1,691 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Core E-Commerce API",
+    "version": "1.0.0",
+    "description": "API del motor de checkout de **davKata-CoreEcommerce**: catálogo de\nproductos, cotización de carrito (motor de descuentos en cascada) y\ncreación/consulta de órdenes.\n\nTodos los errores se devuelven como **RFC 9457 Problem Details**\n(`application/problem+json`) — el mismo estándar de errores usado en\nOpen Banking (Berlin Group / OBIE). Nunca se filtra un stack trace ni\ndetalle interno al cliente en un error 500.\n",
+    "contact": {
+      "name": "davKata-CoreEcommerce",
+      "url": "https://github.com/festem200/davKata-CoreEcommerce"
+    }
+  },
+  "externalDocs": {
+    "description": "Arquitectura del proyecto",
+    "url": "https://github.com/festem200/davKata-CoreEcommerce/blob/main/docs/arquitectura.md"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Desarrollo local (PERSISTENCE_DRIVER=json|memory|postgres)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Salud",
+      "description": "Chequeo de disponibilidad del servicio"
+    },
+    {
+      "name": "Productos",
+      "description": "Catálogo de productos"
+    },
+    {
+      "name": "Carrito",
+      "description": "Cotización del carrito (no persiste nada ni toca stock)"
+    },
+    {
+      "name": "Checkout",
+      "description": "Confirmación de compra (persiste la orden, decrementa stock)"
+    },
+    {
+      "name": "Órdenes",
+      "description": "Consulta de órdenes ya creadas"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Salud"
+        ],
+        "summary": "Estado del servicio",
+        "operationId": "getHealth",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "El servicio está disponible.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok"
+                      ]
+                    }
+                  }
+                },
+                "examples": {
+                  "ok": {
+                    "value": {
+                      "status": "ok"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/products": {
+      "get": {
+        "tags": [
+          "Productos"
+        ],
+        "summary": "Lista el catálogo completo de productos",
+        "operationId": "listProducts",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Catálogo de productos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Product"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/cart/quote": {
+      "post": {
+        "tags": [
+          "Carrito"
+        ],
+        "summary": "Cotiza un carrito sin persistir nada ni tocar stock",
+        "description": "Recalcula el precio de forma autoritativa en el servidor (el\nfrontend nunca decide el precio). Puede llamarse tantas veces como\nse quiera mientras el cliente arma su carrito — no reserva stock.\n",
+        "operationId": "quoteCart",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuoteRequest"
+              },
+              "examples": {
+                "carritoSimple": {
+                  "value": {
+                    "cartLines": [
+                      {
+                        "productId": 1,
+                        "quantity": 2
+                      }
+                    ],
+                    "couponCode": null
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Desglose de precio con descuentos aplicados.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/InvalidCoupon"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/checkout": {
+      "post": {
+        "tags": [
+          "Checkout"
+        ],
+        "summary": "Confirma la compra, decrementa stock y persiste la orden",
+        "description": "Idempotente por el header `Idempotency-Key`: un reintento con la\nmisma clave devuelve la orden ya creada (201) sin recalcular el\nprecio ni volver a tocar el stock. El decremento de stock es\ntodo-o-nada: si una sola línea no tiene stock suficiente, no se\ndecrementa ninguna y no se crea la orden.\n",
+        "operationId": "checkout",
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutRequest"
+              },
+              "examples": {
+                "carritoSimple": {
+                  "value": {
+                    "cartLines": [
+                      {
+                        "productId": 1,
+                        "quantity": 1
+                      }
+                    ],
+                    "couponCode": "WELCOME2026"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Orden creada (o recuperada, si la Idempotency-Key ya se había usado).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Falta el header `Idempotency-Key`, o el body no cumple el esquema.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "description": "Stock insuficiente para una o más líneas del carrito.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "sinStock": {
+                    "value": {
+                      "type": "https://core-ecommerce.soultec.dev/problems/insufficient-stock",
+                      "title": "Stock insuficiente",
+                      "status": 409,
+                      "detail": "Stock insuficiente para uno o más productos del carrito",
+                      "instance": "/api/v1/checkout"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/InvalidCoupon"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/v1/orders/{id}": {
+      "get": {
+        "tags": [
+          "Órdenes"
+        ],
+        "summary": "Consulta una orden ya creada por su id",
+        "operationId": "getOrderById",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Id numérico autoincremental de la orden.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "La orden solicitada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Falta el header `X-Api-Key` o la key no es válida.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Api-Key",
+        "description": "Clave estática configurada en el servidor (`ORDERS_API_KEY`).\nProtege `/api/v1/orders/{id}` porque expone qué se compró y por\ncuánto — lo consume un sistema, no el navegador de un cliente\nanónimo. Comparación en tiempo constante contra ataques de\ntemporización (CWE-208).\n"
+      }
+    },
+    "parameters": {
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "description": "Clave única generada por el cliente para hacer el checkout seguro ante reintentos.",
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "example": "5f2e6b0a-6e0e-4b8a-9c8b-1a2b3c4d5e6f"
+      }
+    },
+    "responses": {
+      "ValidationError": {
+        "description": "El body no cumple el esquema esperado.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetail"
+            },
+            "examples": {
+              "cantidadInvalida": {
+                "value": {
+                  "type": "https://core-ecommerce.soultec.dev/problems/validation-error",
+                  "title": "La solicitud no cumple el esquema esperado",
+                  "status": 400,
+                  "detail": "cartLines.0.quantity: Number must be greater than 0",
+                  "instance": "/api/v1/cart/quote"
+                }
+              }
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "El producto (o la orden) referenciado no existe.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetail"
+            },
+            "examples": {
+              "productoInexistente": {
+                "value": {
+                  "type": "https://core-ecommerce.soultec.dev/problems/not-found",
+                  "title": "Recurso no encontrado",
+                  "status": 404,
+                  "detail": "El producto '999' no existe en el catálogo",
+                  "instance": "/api/v1/cart/quote"
+                }
+              }
+            }
+          }
+        }
+      },
+      "InvalidCoupon": {
+        "description": "El cupón no existe o ya expiró.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetail"
+            },
+            "examples": {
+              "cuponExpirado": {
+                "value": {
+                  "type": "https://core-ecommerce.soultec.dev/problems/invalid-coupon",
+                  "title": "Cupón inválido",
+                  "status": 422,
+                  "detail": "El cupón 'EXPIRED2020' ya expiró",
+                  "instance": "/api/v1/cart/quote"
+                }
+              }
+            }
+          }
+        }
+      },
+      "InternalError": {
+        "description": "Error inesperado del servidor. Nunca filtra detalles internos.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetail"
+            },
+            "examples": {
+              "error": {
+                "value": {
+                  "type": "https://core-ecommerce.soultec.dev/problems/internal-error",
+                  "title": "Error interno del servidor",
+                  "status": 500,
+                  "detail": "Ocurrió un error inesperado. Contacte a soporte con el X-Correlation-Id de esta respuesta.",
+                  "instance": "/api/v1/products"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "CartLine": {
+        "type": "object",
+        "required": [
+          "productId",
+          "quantity"
+        ],
+        "properties": {
+          "productId": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 2
+          }
+        }
+      },
+      "QuoteRequest": {
+        "type": "object",
+        "required": [
+          "cartLines"
+        ],
+        "properties": {
+          "cartLines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartLine"
+            }
+          },
+          "couponCode": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "WELCOME2026"
+          }
+        }
+      },
+      "CheckoutRequest": {
+        "$ref": "#/components/schemas/QuoteRequest"
+      },
+      "Product": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "category",
+          "unitPriceCents",
+          "stock"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Audífonos Bluetooth"
+          },
+          "category": {
+            "type": "string",
+            "description": "Nombre de la categoría (`categories.name`, obtenido por JOIN con `products.category_id`).",
+            "example": "Tecnología"
+          },
+          "unitPriceCents": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Precio unitario en centavos (evita errores de punto flotante).",
+            "example": 4500
+          },
+          "stock": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 10
+          }
+        }
+      },
+      "QuoteDiscountLine": {
+        "type": "object",
+        "required": [
+          "ruleId",
+          "label",
+          "amountCents"
+        ],
+        "properties": {
+          "ruleId": {
+            "type": "string",
+            "enum": [
+              "category-discount",
+              "volume-discount",
+              "coupon-discount",
+              "max-discount-cap"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "example": "Descuento de Categoría (Tecnología 10%)"
+          },
+          "amountCents": {
+            "type": "integer",
+            "example": 450
+          }
+        }
+      },
+      "QuoteLineResult": {
+        "type": "object",
+        "required": [
+          "productId",
+          "quantity",
+          "unitPriceCents",
+          "originalSubtotalCents",
+          "finalAmountCents"
+        ],
+        "properties": {
+          "productId": {
+            "type": "integer",
+            "example": 1
+          },
+          "quantity": {
+            "type": "integer",
+            "example": 2
+          },
+          "unitPriceCents": {
+            "type": "integer",
+            "example": 4500
+          },
+          "originalSubtotalCents": {
+            "type": "integer",
+            "example": 9000
+          },
+          "finalAmountCents": {
+            "type": "integer",
+            "description": "Monto final de la línea ya con todos los descuentos aplicados.",
+            "example": 7696
+          }
+        }
+      },
+      "QuoteResult": {
+        "type": "object",
+        "required": [
+          "originalSubtotalCents",
+          "finalTotalCents",
+          "totalDiscountCents",
+          "effectiveDiscountRate",
+          "capApplied",
+          "discounts",
+          "lines"
+        ],
+        "properties": {
+          "originalSubtotalCents": {
+            "type": "integer",
+            "example": 10990
+          },
+          "finalTotalCents": {
+            "type": "integer",
+            "example": 9586
+          },
+          "totalDiscountCents": {
+            "type": "integer",
+            "example": 1404
+          },
+          "effectiveDiscountRate": {
+            "type": "number",
+            "description": "Descuento efectivo aplicado, nunca mayor a 0.35 (tope absoluto del 35%).",
+            "example": 0.1277525
+          },
+          "capApplied": {
+            "type": "boolean",
+            "description": "true si el tope del 35% tuvo que recortar el descuento calculado por las reglas.",
+            "example": false
+          },
+          "discounts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuoteDiscountLine"
+            }
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuoteLineResult"
+            }
+          }
+        }
+      },
+      "OrderResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "idempotencyKey",
+          "createdAt",
+          "cartLines",
+          "couponCode",
+          "quote"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "example": "5f2e6b0a-6e0e-4b8a-9c8b-1a2b3c4d5e6f"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cartLines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartLine"
+            }
+          },
+          "couponCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quote": {
+            "$ref": "#/components/schemas/QuoteResult"
+          }
+        }
+      },
+      "ProblemDetail": {
+        "type": "object",
+        "description": "RFC 9457 Problem Details for HTTP APIs.",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://core-ecommerce.soultec.dev/problems/not-found"
+          },
+          "title": {
+            "type": "string",
+            "example": "Recurso no encontrado"
+          },
+          "status": {
+            "type": "integer",
+            "example": 404
+          },
+          "detail": {
+            "type": "string",
+            "example": "El producto '999' no existe en el catálogo"
+          },
+          "instance": {
+            "type": "string",
+            "example": "/api/v1/cart/quote"
+          }
+        }
+      }
+    }
+  }
+}

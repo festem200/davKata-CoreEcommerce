@@ -5,6 +5,8 @@ services:
       POSTGRES_DB: core_ecommerce
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -21,7 +23,6 @@ services:
       - "8080:8080"
     environment:
       PORT: 8080
-      PERSISTENCE_DRIVER: postgres
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/core_ecommerce
       ORDERS_API_KEY: local-dev-key
     depends_on:

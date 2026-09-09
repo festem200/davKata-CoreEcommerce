@@ -8,13 +8,13 @@ import { DiscountEngine } from "./DiscountEngine.js";
 import { DiscountRuleFactory } from "./DiscountRuleFactory.js";
 
 const CATALOG: Product[] = [
-  { id: "p1", name: "Audífonos Bluetooth", category: "Tecnología", unitPriceCents: centsFromDecimal(45.0), stock: 10 },
-  { id: "p2", name: "Teclado mecánico", category: "Tecnología", unitPriceCents: centsFromDecimal(89.9), stock: 5 },
-  { id: "p3", name: "Monitor 27\"", category: "Tecnología", unitPriceCents: centsFromDecimal(249.99), stock: 3 },
-  { id: "p4", name: "Power bank 20.000 mAh", category: "Tecnología", unitPriceCents: centsFromDecimal(32.5), stock: 2 },
-  { id: "p5", name: "Camiseta de algodón", category: "Ropa", unitPriceCents: centsFromDecimal(19.9), stock: 20 },
-  { id: "p6", name: "Termo de acero", category: "Hogar", unitPriceCents: centsFromDecimal(24.0), stock: 8 },
-  { id: "p7", name: "Libro Clean Architecture", category: "Libros", unitPriceCents: centsFromDecimal(38.0), stock: 6 },
+  { id: 1, name: "Audífonos Bluetooth", category: "Tecnología", unitPriceCents: centsFromDecimal(45.0), stock: 10 },
+  { id: 2, name: "Teclado mecánico", category: "Tecnología", unitPriceCents: centsFromDecimal(89.9), stock: 5 },
+  { id: 3, name: "Monitor 27\"", category: "Tecnología", unitPriceCents: centsFromDecimal(249.99), stock: 3 },
+  { id: 4, name: "Power bank 20.000 mAh", category: "Tecnología", unitPriceCents: centsFromDecimal(32.5), stock: 2 },
+  { id: 5, name: "Camiseta de algodón", category: "Ropa", unitPriceCents: centsFromDecimal(19.9), stock: 20 },
+  { id: 6, name: "Termo de acero", category: "Hogar", unitPriceCents: centsFromDecimal(24.0), stock: 8 },
+  { id: 7, name: "Libro Clean Architecture", category: "Libros", unitPriceCents: centsFromDecimal(38.0), stock: 6 },
 ];
 
 const COUPONS = new Map<string, Coupon>([
@@ -49,7 +49,7 @@ describe("DiscountEngine — cascada de reglas oficiales", () => {
   it("solo un producto Tecnología que no supera $100: únicamente aplica el descuento de categoría", () => {
     const engine = buildEngine();
 
-    const result = engine.calculate([{ productId: "p1", quantity: 1 }], CATALOG, null);
+    const result = engine.calculate([{ productId: 1, quantity: 1 }], CATALOG, null);
 
     expect(result.originalSubtotalCents).toBe(4500);
     expect(result.discounts).toHaveLength(1);
@@ -64,8 +64,8 @@ describe("DiscountEngine — cascada de reglas oficiales", () => {
 
     const result = engine.calculate(
       [
-        { productId: "p1", quantity: 1 },
-        { productId: "p2", quantity: 1 },
+        { productId: 1, quantity: 1 },
+        { productId: 2, quantity: 1 },
       ],
       CATALOG,
       null,
@@ -86,8 +86,8 @@ describe("DiscountEngine — cascada de reglas oficiales", () => {
 
     const result = engine.calculate(
       [
-        { productId: "p1", quantity: 1 }, // Tecnología 4500
-        { productId: "p5", quantity: 1 }, // Ropa 1990
+        { productId: 1, quantity: 1 }, // Tecnología 4500
+        { productId: 5, quantity: 1 }, // Ropa 1990
       ],
       CATALOG,
       null,
@@ -104,8 +104,8 @@ describe("DiscountEngine — cascada de reglas oficiales", () => {
 
     const result = engine.calculate(
       [
-        { productId: "p1", quantity: 1 },
-        { productId: "p2", quantity: 1 },
+        { productId: 1, quantity: 1 },
+        { productId: 2, quantity: 1 },
       ],
       CATALOG,
       "WELCOME2026",
@@ -121,9 +121,9 @@ describe("DiscountEngine — cascada de reglas oficiales", () => {
   it("stock insuficiente no es responsabilidad del motor de precios (se valida en el caso de uso de checkout)", () => {
     // El motor de descuentos NO conoce el stock: cotizar no decrementa ni valida disponibilidad.
     const engine = buildEngine();
-    const product = CATALOG.find((p) => p.id === "p4");
+    const product = CATALOG.find((p) => p.id === 4);
 
-    const result = engine.calculate([{ productId: "p4", quantity: 999 }], CATALOG, null);
+    const result = engine.calculate([{ productId: 4, quantity: 999 }], CATALOG, null);
 
     expect(result.originalSubtotalCents).toBe((product?.unitPriceCents ?? 0) * 999);
   });
@@ -133,7 +133,7 @@ describe("DiscountEngine — tope absoluto del 35%", () => {
   it("un cupón agresivo (BLACKFRIDAY40) dispara el tope y lo trunca EXACTO en 35%", () => {
     const engine = buildEngine();
 
-    const result = engine.calculate([{ productId: "p3", quantity: 1 }], CATALOG, "BLACKFRIDAY40");
+    const result = engine.calculate([{ productId: 3, quantity: 1 }], CATALOG, "BLACKFRIDAY40");
 
     const capCents = Math.floor(result.originalSubtotalCents * 0.35);
     expect(result.capApplied).toBe(true);
@@ -147,8 +147,8 @@ describe("DiscountEngine — tope absoluto del 35%", () => {
 
     const result = engine.calculate(
       [
-        { productId: "p1", quantity: 2 },
-        { productId: "p3", quantity: 1 },
+        { productId: 1, quantity: 2 },
+        { productId: 3, quantity: 1 },
       ],
       CATALOG,
       "BLACKFRIDAY40",
@@ -163,7 +163,7 @@ describe("DiscountEngine — tope absoluto del 35%", () => {
     const coupons = new Map<string, Coupon>([["EXACT35", { code: "EXACT35", rate: 0.35, expiresAt: null }]]);
     const engine = buildEngine(coupons);
 
-    const result = engine.calculate([{ productId: "p6", quantity: 1 }], CATALOG, "EXACT35");
+    const result = engine.calculate([{ productId: 6, quantity: 1 }], CATALOG, "EXACT35");
 
     expect(result.capApplied).toBe(false);
     expect(result.effectiveDiscountRate).toBeCloseTo(0.35, 5);
@@ -251,25 +251,25 @@ describe("DiscountEngine — casos de borde de validación", () => {
   it("cantidad 0 se rechaza como dato corrupto", () => {
     const engine = buildEngine();
 
-    expect(() => engine.calculate([{ productId: "p1", quantity: 0 }], CATALOG, null)).toThrow(InvalidCartLineError);
+    expect(() => engine.calculate([{ productId: 1, quantity: 0 }], CATALOG, null)).toThrow(InvalidCartLineError);
   });
 
   it("cantidad negativa se rechaza como dato corrupto", () => {
     const engine = buildEngine();
 
-    expect(() => engine.calculate([{ productId: "p1", quantity: -3 }], CATALOG, null)).toThrow(InvalidCartLineError);
+    expect(() => engine.calculate([{ productId: 1, quantity: -3 }], CATALOG, null)).toThrow(InvalidCartLineError);
   });
 
   it("cantidad no entera se rechaza como dato corrupto", () => {
     const engine = buildEngine();
 
-    expect(() => engine.calculate([{ productId: "p1", quantity: 1.5 }], CATALOG, null)).toThrow(InvalidCartLineError);
+    expect(() => engine.calculate([{ productId: 1, quantity: 1.5 }], CATALOG, null)).toThrow(InvalidCartLineError);
   });
 
   it("producto inexistente lanza un error explícito", () => {
     const engine = buildEngine();
 
-    expect(() => engine.calculate([{ productId: "no-existe", quantity: 1 }], CATALOG, null)).toThrow(
+    expect(() => engine.calculate([{ productId: 999, quantity: 1 }], CATALOG, null)).toThrow(
       ProductNotFoundError,
     );
   });
@@ -277,7 +277,7 @@ describe("DiscountEngine — casos de borde de validación", () => {
   it("cupón vacío o solo espacios se trata como 'sin cupón', no como error", () => {
     const engine = buildEngine();
 
-    const result = engine.calculate([{ productId: "p1", quantity: 1 }], CATALOG, "   ");
+    const result = engine.calculate([{ productId: 1, quantity: 1 }], CATALOG, "   ");
 
     expect(result.discounts.some((d) => d.ruleId === "coupon-discount")).toBe(false);
   });
@@ -285,7 +285,7 @@ describe("DiscountEngine — casos de borde de validación", () => {
   it("cupón inexistente lanza un error explícito", () => {
     const engine = buildEngine();
 
-    expect(() => engine.calculate([{ productId: "p1", quantity: 1 }], CATALOG, "NO-EXISTE")).toThrow(
+    expect(() => engine.calculate([{ productId: 1, quantity: 1 }], CATALOG, "NO-EXISTE")).toThrow(
       CouponNotFoundError,
     );
   });
@@ -293,7 +293,7 @@ describe("DiscountEngine — casos de borde de validación", () => {
   it("cupón expirado lanza un error explícito", () => {
     const engine = buildEngine();
 
-    expect(() => engine.calculate([{ productId: "p1", quantity: 1 }], CATALOG, "EXPIRED2020")).toThrow(
+    expect(() => engine.calculate([{ productId: 1, quantity: 1 }], CATALOG, "EXPIRED2020")).toThrow(
       CouponExpiredError,
     );
   });

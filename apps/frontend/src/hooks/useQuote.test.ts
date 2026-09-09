@@ -34,7 +34,7 @@ describe("useQuote", () => {
       }),
     );
 
-    const cart: CartState = { lines: [{ productId: "p1", quantity: 1 }], couponCode: null };
+    const cart: CartState = { lines: [{ productId: 1, quantity: 1 }], couponCode: null };
     const { result } = renderHook(() => useQuote(cart));
 
     expect(result.current.loading).toBe(true);
@@ -55,7 +55,7 @@ describe("useQuote", () => {
       }),
     );
 
-    const cart: CartState = { lines: [{ productId: "p1", quantity: 1 }], couponCode: "NO-EXISTE" };
+    const cart: CartState = { lines: [{ productId: 1, quantity: 1 }], couponCode: "NO-EXISTE" };
     const { result } = renderHook(() => useQuote(cart));
 
     await waitFor(() => expect(result.current.error).not.toBeNull());

@@ -1,5 +1,6 @@
 import { Pool } from "pg";
-import type { Product } from "../../../domain/model/Product.js";
+import type { Product } from "../../domain/model/Product.js";
+import type { Coupon } from "../../domain/pricing/Coupon.js";
 import { applySchema } from "./schema.js";
 
 /**
@@ -26,16 +27,33 @@ export async function connectToTestDatabase(): Promise<Pool | null> {
 }
 
 export async function resetProducts(pool: Pool, seed: readonly Product[]): Promise<void> {
-  await pool.query("TRUNCATE products");
+  // order_items.product_id es FK a products: hay que vaciarla primero.
+  await pool.query("TRUNCATE order_items, products RESTART IDENTITY CASCADE");
 
   for (const product of seed) {
     await pool.query(
-      "INSERT INTO products (id, name, category, unit_price_cents, stock) VALUES ($1, $2, $3, $4, $5)",
+      `INSERT INTO products (id, name, category_id, unit_price_cents, stock)
+       VALUES ($1, $2, (SELECT id FROM categories WHERE name = $3), $4, $5)`,
       [product.id, product.name, product.category, product.unitPriceCents, product.stock],
     );
   }
 }
 
 export async function resetOrders(pool: Pool): Promise<void> {
-  await pool.query("TRUNCATE orders");
+  await pool.query("TRUNCATE order_items, orders RESTART IDENTITY CASCADE");
+}
+
+export async function resetCoupons(pool: Pool, seed: readonly Coupon[]): Promise<void> {
+  // orders.coupon_id es FK a coupons: CASCADE también vacía orders (y, por
+  // FK transitiva, order_items). No usar esta función en un test que
+  // necesite conservar órdenes ya guardadas.
+  await pool.query("TRUNCATE coupons RESTART IDENTITY CASCADE");
+
+  for (const coupon of seed) {
+    await pool.query("INSERT INTO coupons (code, discount_rate, expires_at) VALUES ($1, $2, $3)", [
+      coupon.code,
+      coupon.rate,
+      coupon.expiresAt,
+    ]);
+  }
 }

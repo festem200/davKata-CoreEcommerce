@@ -8,12 +8,12 @@ import { CalculateQuoteUseCase } from "./application/CalculateQuoteUseCase.js";
 import { CheckoutUseCase } from "./application/CheckoutUseCase.js";
 import { DiscountEngine } from "./domain/pricing/DiscountEngine.js";
 import { DiscountRuleFactory } from "./domain/pricing/DiscountRuleFactory.js";
-import { InMemoryOrderRepository } from "./infrastructure/persistence/memory/InMemoryOrderRepository.js";
-import { InMemoryProductRepository } from "./infrastructure/persistence/memory/InMemoryProductRepository.js";
+import { FakeOrderRepository } from "./test-support/FakeOrderRepository.js";
+import { FakeProductRepository } from "./test-support/FakeProductRepository.js";
 
 const CATALOG = [
-  { id: "p1", name: "Audífonos Bluetooth", category: "Tecnología", unitPriceCents: 4500, stock: 10 },
-  { id: "p4", name: "Power bank", category: "Tecnología", unitPriceCents: 3250, stock: 2 },
+  { id: 1, name: "Audífonos Bluetooth", category: "Tecnología", unitPriceCents: 4500, stock: 10 },
+  { id: 4, name: "Power bank", category: "Tecnología", unitPriceCents: 3250, stock: 2 },
 ];
 
 const COUPONS = new Map([
@@ -22,8 +22,8 @@ const COUPONS = new Map([
 ]);
 
 function buildDependencies(overrides: Partial<AppDependencies> = {}): AppDependencies {
-  const productRepository = new InMemoryProductRepository(CATALOG);
-  const orderRepository = new InMemoryOrderRepository();
+  const productRepository = new FakeProductRepository(CATALOG);
+  const orderRepository = new FakeOrderRepository();
   const engine = new DiscountEngine(
     DiscountRuleFactory.create({ ruleOrder: ["category-discount", "volume-discount", "coupon-discount"], coupons: COUPONS }),
   );
@@ -78,7 +78,7 @@ describe("POST /api/v1/cart/quote", () => {
 
     const response = await request(app)
       .post("/api/v1/cart/quote")
-      .send({ cartLines: [{ productId: "p1", quantity: 1 }] });
+      .send({ cartLines: [{ productId: 1, quantity: 1 }] });
 
     expect(response.status).toBe(200);
     expect(response.body.finalTotalCents).toBe(4050);
@@ -89,7 +89,7 @@ describe("POST /api/v1/cart/quote", () => {
 
     const response = await request(app)
       .post("/api/v1/cart/quote")
-      .send({ cartLines: [{ productId: "p1", quantity: -1 }] });
+      .send({ cartLines: [{ productId: 1, quantity: -1 }] });
 
     expect(response.status).toBe(400);
     expect(response.headers["content-type"]).toContain("application/problem+json");
@@ -101,7 +101,7 @@ describe("POST /api/v1/cart/quote", () => {
 
     const response = await request(app)
       .post("/api/v1/cart/quote")
-      .send({ cartLines: [{ productId: "p1", quantity: 1 }], couponCode: "EXPIRED2020" });
+      .send({ cartLines: [{ productId: 1, quantity: 1 }], couponCode: "EXPIRED2020" });
 
     expect(response.status).toBe(422);
     expect(response.body.type).toContain("invalid-coupon");
@@ -112,7 +112,7 @@ describe("POST /api/v1/cart/quote", () => {
 
     const response = await request(app)
       .post("/api/v1/cart/quote")
-      .send({ cartLines: [{ productId: "no-existe", quantity: 1 }] });
+      .send({ cartLines: [{ productId: 999, quantity: 1 }] });
 
     expect(response.status).toBe(404);
     expect(response.body.type).toContain("not-found");
@@ -127,7 +127,7 @@ describe("POST /api/v1/cart/quote", () => {
 
     const response = await request(app)
       .post("/api/v1/cart/quote")
-      .send({ cartLines: [{ productId: "p1", quantity: 1 }] });
+      .send({ cartLines: [{ productId: 1, quantity: 1 }] });
 
     expect(response.status).toBe(500);
     expect(response.body.type).toContain("internal-error");
@@ -141,7 +141,7 @@ describe("POST /api/v1/checkout", () => {
 
     const response = await request(app)
       .post("/api/v1/checkout")
-      .send({ cartLines: [{ productId: "p1", quantity: 1 }] });
+      .send({ cartLines: [{ productId: 1, quantity: 1 }] });
 
     expect(response.status).toBe(400);
     expect(response.body.type).toContain("missing-idempotency-key");
@@ -153,7 +153,7 @@ describe("POST /api/v1/checkout", () => {
     const response = await request(app)
       .post("/api/v1/checkout")
       .set("Idempotency-Key", "key-1")
-      .send({ cartLines: [{ productId: "p1", quantity: 1 }] });
+      .send({ cartLines: [{ productId: 1, quantity: 1 }] });
 
     expect(response.status).toBe(201);
     expect(response.body.id).toBeDefined();
@@ -166,7 +166,7 @@ describe("POST /api/v1/checkout", () => {
     const response = await request(app)
       .post("/api/v1/checkout")
       .set("Idempotency-Key", "key-2")
-      .send({ cartLines: [{ productId: "p4", quantity: 99 }] });
+      .send({ cartLines: [{ productId: 4, quantity: 99 }] });
 
     expect(response.status).toBe(409);
     expect(response.body.type).toContain("insufficient-stock");
@@ -174,7 +174,7 @@ describe("POST /api/v1/checkout", () => {
 
   it("es idempotente: reintentar con la misma clave devuelve la misma orden (201)", async () => {
     const app = createApp(buildDependencies());
-    const payload = { cartLines: [{ productId: "p1", quantity: 1 }] };
+    const payload = { cartLines: [{ productId: 1, quantity: 1 }] };
 
     const first = await request(app).post("/api/v1/checkout").set("Idempotency-Key", "key-3").send(payload);
     const second = await request(app).post("/api/v1/checkout").set("Idempotency-Key", "key-3").send(payload);
@@ -206,7 +206,7 @@ describe("GET /api/v1/orders/:id", () => {
     const checkoutResponse = await request(app)
       .post("/api/v1/checkout")
       .set("Idempotency-Key", "key-4")
-      .send({ cartLines: [{ productId: "p1", quantity: 1 }] });
+      .send({ cartLines: [{ productId: 1, quantity: 1 }] });
 
     const orderResponse = await request(app)
       .get(`/api/v1/orders/${checkoutResponse.body.id}`)

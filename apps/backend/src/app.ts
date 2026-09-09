@@ -44,7 +44,20 @@ export function createApp(deps: AppDependencies): Express {
   if (process.env["NODE_ENV"] === "production") {
     app.set("trust proxy", 1);
   }
-  app.use(helmet());
+  // El CSP por defecto de helmet solo permite imágenes propias (`'self'`) y
+  // `data:` — bloquea las fotos reales del catálogo, que vienen de CDNs
+  // externos (DummyJSON, Open Library Covers). Se amplía solo `img-src`,
+  // el resto de directivas por defecto (script-src, etc.) queda intacto.
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+          "img-src": ["'self'", "data:", "https://cdn.dummyjson.com", "https://covers.openlibrary.org"],
+        },
+      },
+    }),
+  );
   app.use(express.json({ limit: REQUEST_BODY_SIZE_LIMIT }));
   app.use(correlationId());
   app.use(rateLimit({ windowMs: RATE_LIMIT_WINDOW_MS, max: RATE_LIMIT_MAX_REQUESTS, standardHeaders: true, legacyHeaders: false }));

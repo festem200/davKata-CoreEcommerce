@@ -1,6 +1,14 @@
 # Arquitectura — Core E-Commerce Checkout
 
-> Responde punto por punto las preguntas de la §4.1 del enunciado (`insumos/`), documenta los 4 patrones de diseño exigidos (mínimo 2) y el hallazgo matemático que define la estrategia de la HU4.
+## Diagramas
+
+**Despliegue en AWS** (fuente editable: [`diagrams/diagrama-arquitectura-aws.drawio`](./diagrams/diagrama-arquitectura-aws.drawio))
+
+![Arquitectura de despliegue en AWS](./diagrams/diagrama-arquitectura-aws.png)
+
+**Modelo de datos** (fuente editable: [`diagrams/diagrama-bd.drawio`](./diagrams/diagrama-bd.drawio))
+
+![Modelo de datos](./diagrams/diagrama-bd.png)
 
 ## 1. ¿Por qué este stack y este diseño de carpetas?
 
@@ -11,7 +19,7 @@
 | Arquitectura | **Hexagonal (Ports & Adapters)** | El área de Open Banking del autor migra hacia multinube/multirregión. Este proyecto demuestra el mismo argumento a escala pequeña: el dominio no sabe dónde corre ni cómo se persiste. |
 | Frontend | **React 19 + Vite + TypeScript** | Vitest en front y back → un solo test runner, un solo comando de cobertura (`npm run test:coverage`). |
 | Dinero | **Enteros en centavos (`Cents`)** ([`Money.ts`](../apps/backend/src/domain/model/Money.ts)) | `0.1 + 0.2 !== 0.3` en punto flotante. Un core de pagos no puede darse ese lujo. |
-| Persistencia | **3 adaptadores** (`memory` / `json` / `postgres`) tras un mismo puerto, seleccionables por `PERSISTENCE_DRIVER` | Demuestra el patrón Repository de verdad: la misma suite de tests de contrato pasa en los tres. Default `json` → cero fricción para el evaluador (no necesita Docker). |
+| Persistencia | **Postgres**, único adaptador tras el puerto `ProductRepository`/`OrderRepository` — sin variable de entorno para elegir otro | El dominio y los casos de uso solo conocen el puerto, nunca `pg` directamente; eso ya demuestra el patrón Repository sin necesidad de mantener implementaciones paralelas que nadie usa en producción. `docker compose up` levanta todo con un solo comando. |
 | Errores | **RFC 9457 Problem Details** ([`problemDetails.ts`](../apps/backend/src/infrastructure/http/problemDetails.ts)) | Estándar de error usado en Open Banking (Berlin Group / OBIE). Un error 500 nunca filtra detalles internos al cliente. |
 
 **Estructura de carpetas** (`apps/backend/src/`):
@@ -24,8 +32,9 @@ domain/          # PURO — cero imports de Express, pg, ni nada de infraestruct
 application/     # CalculateQuoteUseCase, CheckoutUseCase — orquestan dominio + puertos
 infrastructure/  # Todo lo que SÍ conoce el framework
   http/          # Express: rutas, middlewares, mapeo de errores
-  persistence/   # memory/, json/, postgres/ — los 3 adaptadores
-  config/        # catálogo, cupones, variables de entorno
+  postgres/      # El único adaptador de persistencia real
+  config/        # catálogo, variables de entorno
+test-support/    # Fakes en memoria de los puertos — SOLO para tests, nunca en producción
 ```
 
 La regla de dependencia es unidireccional: `infrastructure` → `application` → `domain`. El dominio no importa nada de las otras dos capas.
@@ -34,11 +43,11 @@ La regla de dependencia es unidireccional: `infrastructure` → `application` �
 
 | Trade-off | Decisión | Costo aceptado |
 |---|---|---|
-| Simplicidad vs. extensibilidad | 3 adaptadores de persistencia en vez de 1 | Más código para un caso de uso pequeño — pero es exactamente el punto a defender: portabilidad demostrada, no afirmada. |
+| Portabilidad vs. superficie de mantenimiento | Un único adaptador de persistencia (Postgres), no varios intercambiables por variable de entorno | Se probaron 3 (`memory`/`json`/`postgres`) para demostrar el patrón Repository; se eliminaron los dos primeros porque mantener implementaciones paralelas que nadie usa en producción costaba más de lo que aportaban. El puerto (`ProductRepository`/`OrderRepository`) sigue demostrando el desacople — el dominio no conoce `pg` — sin necesitar una segunda implementación real. |
 | Velocidad de entrega vs. rendimiento de cálculo | El motor recalcula todo el carrito en cada cotización, sin memoización | El carrito tiene ≤7 productos; optimizar sería resolver un problema que no existe a esta escala. |
 | Un solo artefacto vs. despliegue independiente de frontend | El backend sirve los estáticos del frontend ya compilados ([`app.ts`](../apps/backend/src/app.ts)) | Cero CORS y una sola URL, a costa de no poder escalar frontend y backend por separado. A escala real iría a CDN (S3 + CloudFront) — documentado como tal. |
 | ORM vs. SQL explícito | `pg` sin ORM en el adaptador Postgres | Más SQL escrito a mano — pero con Ports & Adapters el SQL **debe** vivir dentro del adaptador; un ORM diluiría exactamente el patrón que se quiere demostrar. |
-| Cobertura del adaptador Postgres | Se excluye del umbral bloqueante del 80% cuando no hay Postgres disponible ([`vitest.config.ts`](../apps/backend/vitest.config.ts)) | Se verifica aparte (suite de contrato + test de concurrencia) cuando `docker compose up` está corriendo. La alternativa — mockear `pg` — hubiera dado cobertura falsa sin probar nada real. |
+| Cobertura del adaptador Postgres | Cuenta para el umbral bloqueante del 80% ([`vitest.config.ts`](../apps/backend/vitest.config.ts)) | Es el único adaptador de persistencia y CI ya provisiona un Postgres real (`services.postgres` en `ci.yml`), así que excluirlo escondería justo el código que más importa medir. Solo se excluye `testDatabase.ts` (utilería exclusiva de tests). |
 | Sin ESLint | Solo TypeScript estricto (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, etc.) | Un linter con `eslint-plugin-react-hooks` habría atrapado en el momento un bug real que se cometió durante el desarrollo (ver `docs/ia.md`, corrección #1: dispatch durante el render en un test). Se documenta como limitación consciente por presupuesto de tiempo, no como omisión no evaluada. |
 
 ## 3. Cómo se aisló el motor de descuentos de la persistencia y los controladores
@@ -79,21 +88,15 @@ Arma la cadena de reglas **desde configuración** (`ruleOrder: DiscountRuleId[]`
 ```ts
 DiscountRuleFactory.create({
   ruleOrder: ["category-discount", "volume-discount", "coupon-discount"],
-  coupons: COUPONS,
+  coupons: await loadCoupons(pool), // tabla `coupons`, no un Map hardcodeado
 });
 ```
 
 ### Repository / Ports & Adapters — [`ProductRepository.ts`](../apps/backend/src/domain/ports/ProductRepository.ts), [`OrderRepository.ts`](../apps/backend/src/domain/ports/OrderRepository.ts)
 
-Dos puertos, **tres adaptadores intercambiables** que comparten una misma [suite de tests de contrato](../apps/backend/src/infrastructure/persistence/contract.test.ts):
+Dos puertos, **un adaptador de producción** ([`PostgresProductRepository.ts`](../apps/backend/src/infrastructure/postgres/PostgresProductRepository.ts) / [`PostgresOrderRepository.ts`](../apps/backend/src/infrastructure/postgres/PostgresOrderRepository.ts)), validado por una [suite de tests de contrato](../apps/backend/src/infrastructure/postgres/contract.test.ts) — el dominio y los casos de uso solo dependen del puerto, nunca de `pg` directamente.
 
-| Adaptador | Uso | Archivo |
-|---|---|---|
-| `memory` | Tests unitarios rápidos, sin I/O | [`InMemoryProductRepository.ts`](../apps/backend/src/infrastructure/persistence/memory/InMemoryProductRepository.ts) |
-| `json` | **Default** — cero fricción para el evaluador | [`JsonProductRepository.ts`](../apps/backend/src/infrastructure/persistence/json/JsonProductRepository.ts) |
-| `postgres` | Concurrencia real, demo con Docker Compose | [`PostgresProductRepository.ts`](../apps/backend/src/infrastructure/persistence/postgres/PostgresProductRepository.ts) |
-
-Si un adaptador no pasa la suite de contrato, no es un adaptador válido — sin importar cómo esté implementado por dentro.
+El proyecto tuvo en algún momento adaptadores adicionales (`memory`, `json`) seleccionables por una variable de entorno, pensados para que el evaluador no necesitara Docker. Se eliminaron: mantener tres implementaciones paralelas del mismo repository era más superficie de código que valor real, y la HU3 del enunciado solo pedía persistir en memoria, SQLite o JSON — Postgres ya era una mejora voluntaria sobre eso. Los tests unitarios que necesitan una implementación rápida sin BD usan `test-support/FakeProductRepository.ts` / `FakeOrderRepository.ts` — nunca se instancian en `main.ts`.
 
 ### Observer — [`CartContext.tsx`](../apps/frontend/src/state/CartContext.tsx)
 
@@ -140,7 +143,7 @@ Reconocer los límites de aplicabilidad de un estándar demuestra más criterio 
 - Validación con Zod en todos los bordes ([`packages/contracts`](../packages/contracts/src/schemas.ts)); `helmet`, rate limiting, límite de tamaño de body ([`app.ts`](../apps/backend/src/app.ts)).
 - `GET /api/v1/orders/:id` requiere `X-Api-Key` (fail-closed: sin key configurada, se rechaza toda solicitud) — expone qué se compró y por cuánto. Los demás endpoints son públicos porque los consume un navegador anónimo; una API key ahí sería teatro de seguridad (visible en el JavaScript del cliente).
 - `Idempotency-Key` obligatorio en checkout — un reintento por timeout no duplica la orden ni el decremento de stock.
-- SQL siempre parametrizado ([`PostgresProductRepository.ts`](../apps/backend/src/infrastructure/persistence/postgres/PostgresProductRepository.ts)).
+- SQL siempre parametrizado ([`PostgresProductRepository.ts`](../apps/backend/src/infrastructure/postgres/PostgresProductRepository.ts)).
 - Contenedor con usuario no-root ([`infra/Dockerfile`](../infra/Dockerfile)).
 - Secretos vía `.env` en local / variables de entorno inyectadas en AWS — nunca en el código ni horneados en la imagen.
 - **No hay autenticación de usuarios**: no existe identidad de usuario en el alcance del enunciado. En producción se resolvería con OAuth 2.0 + **FAPI** (Financial-grade API, el perfil de OAuth para Open Banking) — agregarlo aquí sería complejidad sin beneficio demostrable.

@@ -14,7 +14,7 @@ export interface QuoteDiscountLine {
 }
 
 export interface QuoteLineResult {
-  readonly productId: string;
+  readonly productId: number;
   readonly quantity: number;
   readonly unitPriceCents: Cents;
   readonly originalSubtotalCents: Cents;
@@ -109,7 +109,7 @@ function applyMaxDiscountCap(
         ruleId: MAX_DISCOUNT_CAP_RULE_ID,
         label: "Ajuste por límite máximo de descuento (35%)",
         amountCents: -giveBackCents,
-        perLineAmountsCents: new Map<string, Cents>(),
+        perLineAmountsCents: new Map<number, Cents>(),
       },
     ],
   };

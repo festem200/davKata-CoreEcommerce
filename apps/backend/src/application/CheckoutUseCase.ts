@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import type { CartLine } from "../domain/model/CartLine.js";
 import type { Order } from "../domain/model/Order.js";
 import type { OrderRepository } from "../domain/ports/OrderRepository.js";
@@ -31,7 +30,6 @@ export class CheckoutUseCase {
     private readonly productRepository: ProductRepository,
     private readonly orderRepository: OrderRepository,
     private readonly discountEngine: DiscountEngine,
-    private readonly generateOrderId: () => string = () => randomUUID(),
     private readonly now: () => Date = () => new Date(),
   ) {}
 
@@ -49,16 +47,13 @@ export class CheckoutUseCase {
       throw new InsufficientStockException(shortages);
     }
 
-    const order: Order = {
-      id: this.generateOrderId(),
+    const order = await this.orderRepository.save({
       idempotencyKey: input.idempotencyKey,
       createdAt: this.now(),
       cartLines: input.cartLines,
       couponCode: input.couponCode,
       quote,
-    };
-
-    await this.orderRepository.save(order);
+    });
 
     return order;
   }

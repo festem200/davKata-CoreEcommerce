@@ -16,15 +16,13 @@ export default defineConfig({
         "vitest.config.ts",
         "tsup.config.ts",
         "src/main.ts",
-        "src/infrastructure/persistence/**/contract.test.ts",
-        // El adaptador Postgres requiere una base de datos real: se
-        // verifica con la suite de contrato y el test de concurrencia
-        // cuando `docker compose up` está corriendo, no en el umbral
-        // bloqueante del 80% (que debe pasar sin Docker, la ruta del
-        // evaluador con el driver `json` por defecto).
-        "src/infrastructure/persistence/postgres/Postgres*.ts",
-        "src/infrastructure/persistence/postgres/testDatabase.ts",
-        "src/infrastructure/persistence/postgres/schema.ts",
+        "src/infrastructure/postgres/contract.test.ts",
+        // testDatabase.ts es utilería exclusiva de tests (truncar/sembrar
+        // tablas para dejar la BD en un estado conocido); no es código de
+        // producción. El resto del adaptador Postgres SÍ cuenta para el
+        // umbral: es el único adaptador de persistencia y CI ya provisiona
+        // un Postgres real (ver `services.postgres` en ci.yml).
+        "src/infrastructure/postgres/testDatabase.ts",
         "**/*.d.ts",
       ],
       thresholds: {
