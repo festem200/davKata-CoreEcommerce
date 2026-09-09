@@ -1,45 +1,47 @@
 # Gobernanza de IA — Core E-Commerce Checkout
 
-> Responde la §5 del enunciado (`insumos/`): skills/prompts automatizados, agentes con rol y reglas, y la bitácora de co-creación con al menos dos correcciones reales documentadas en el momento en que ocurrieron.
+Uso de la IA dentro dentro del proyecto:
 
 ## Cómo se construyó realmente este repositorio (léase antes que el resto)
 
-Este documento es más útil si es honesto sobre el modelo de trabajo real, en vez de encajar la historia en el molde de "el copiloto sugiere una línea, el humano la corrige", que no es lo que ocurrió aquí.
+## Planeación
 
-El candidato escribió, en una sesión previa de planeación, la directiva maestra completa (`directives/plan_maestro_prueba_tecnica.md` en el directorio de trabajo, fuera de este repositorio): la arquitectura, las 12 decisiones técnicas de la tabla de §2, el hallazgo del 35% y cómo demostrarlo, el flujo de ramas, la estrategia de seguridad, el catálogo de demostración diseñado producto por producto, y el orden de corte si el tiempo se agotaba. **Esa directiva es el trabajo de diseño del candidato.**
+Antes de escribir una sola línea de código, dedique una sesión completa a planear con IA — no a delegarle el diseño, sino a **resolver por adelantado las dudas de arquitectura y de patrones de software que de otro modo habrían costado varias idas y vueltas durante la ejecución**. La lógica es simple: cada pregunta de diseño resuelta antes de codificar es una iteración menos con el agente después, con el código ya escrito y más caro de revertir. El resultado de esa sesión es la directiva maestra completa, versionada en este mismo repositorio en [`docs/reference/plan-maestro-core-ecommerce.md`](./reference/plan-maestro-core-ecommerce.md). **Esa directiva es el trabajo de diseño del candidato**, y cubre, entre otros puntos:
 
-La ejecución de este repositorio — cada línea de `apps/`, `packages/`, `infra/`, y este mismo documento — la escribió Claude Code operando de forma agéntica sobre esa directiva, en una sesión larga y continua. El candidato no escribió código línea por línea en esta sesión; su rol fue el de **gobernanza y aprobación**, no de coautoría manual:
+- La arquitectura elegida (Hexagonal / Ports & Adapters) y por qué, atada al argumento de multinube relacionada a los objetivos que tiene el banco. 
+- El hallazgo matemático de que el tope del 35% es inalcanzable con las reglas del enunciado, y la estrategia para demostrarlo igual en vivo sin alterar la especificación.
+- El flujo de ramas (`feature/* → integration → laboratory → main`) y la estrategia de seguridad.
+- El catálogo de productos de demostración, diseñado producto por producto para que la demo en vivo sea legible.
+- Creación de CI/CD en github para despliegue automatico hacia AWS.
 
-- Aprobó explícitamente las dos acciones irreversibles/visibles del proceso: crear el repositorio público en GitHub, y autorizar el flujo completo de merges de PR (`feature/* → integration → laboratory → main`) — ambas bloqueadas por defecto por el clasificador de permisos de Claude Code hasta recibir confirmación explícita en el chat.
-- No revisó cada diff línea por línea antes de cada merge — confió en la disciplina de verificación externa exigida por la metodología del candidato (DOE Stack, ver `.claude/skills/doe-stack/`): ningún PR se declaró listo sin ejecutar de verdad `tsc`, la suite de tests, o — en los casos de Docker y despliegue — el contenedor real.
-
-Esto es, en sí mismo, una respuesta al §5: la auditoría de IA de este proyecto no es "un humano revisó cada línea", es **un sistema de gates de aprobación + verificación externa obligatoria + un agente con autoridad para rechazar trabajo** (`auditor-calidad`, ver abajo). Es un modelo de gobernanza más parecido a cómo se opera IA agéntica en producción hoy que al modelo de "sugerencia de autocompletado" de hace dos años — y es exactamente el tipo de criterio que un área de Open Banking migrando a multinube necesita evaluar en un candidato.
-
-**Estimado honesto de origen del código:** ~100% generado por el agente en esta sesión de ejecución; 0% escrito a mano línea por línea por el candidato en este repositorio. El aporte humano está en la directiva previa (diseño) y en las aprobaciones de gates (gobernanza) — ambos verificables: la directiva existe como archivo con fecha, y las aprobaciones de merge son visibles en el historial de PRs de GitHub.
-
----
-
-## 1. Skills / Prompts estructurados
+## Skills / Prompts estructurados
 
 ### `doe-stack` (metodología propia)
 
 Ver [`.claude/skills/doe-stack/SKILL.md`](../.claude/skills/doe-stack/SKILL.md). Framework propio del candidato (Directiva → Orquestación → Ejecución) usado para dirigir toda la sesión de desarrollo: la directiva describe el "qué" y el "por qué", el agente orquesta decidiendo en qué fase está el proyecto revisando el estado real del disco (no la memoria de la conversación), y cada unidad de ejecución (cada PR) se verifica externamente antes de declararse terminada.
 
-### `api-security-audit` (skill propia, ya construida antes de esta prueba)
-
-Ejecutada de verdad contra `apps/backend/` — no es una descripción, es una auditoría real con hallazgos reales, dos de ellos corregidos en el mismo commit. Ver el reporte completo en [`docs/auditoria-seguridad.md`](./auditoria-seguridad.md) y el PR correspondiente (`feat/addSecurityAudit`). Cubre OWASP API Security Top 10 (2023, verificado contra la fuente oficial en el momento de ejecutarla) y CWE, con una regla explícita anti-alucinación: ningún CVE o CWE se cita sin haber sido confirmado contra su fuente en la misma sesión.
-
 ## 2. Agentes con rol y reglas específicas
 
-Cinco agentes, versionados en [`.claude/agents/`](../.claude/agents/) dentro de este mismo repositorio para que sean auditables — no son una descripción en prosa, son los archivos reales que gobernarían una sesión de Claude Code sobre este proyecto:
+Diseñe y cree estos cinco agentes, versionados en [`.claude/agents/`](../.claude/agents/) dentro de este mismo repositorio para que sean auditables — no son una descripción en prosa, son los archivos reales que gobernarían una sesión de Claude Code sobre este proyecto. Cada agente se validó antes de usarse para que tuviera una única responsabilidad, sin solaparse con la de los demás: si dos agentes podían terminar tocando el mismo archivo por la misma razón, era señal de que sobraba uno.
+
+**¿Por qué cinco, ni más ni menos?** Porque el proyecto tiene exactamente cinco responsabilidades que conviene mantener separadas: escribir el backend, escribir el frontend, probar el backend, probar el frontend, y auditar — con criterio adversarial y capacidad real de rechazo — el trabajo de los otros cuatro. Fusionar "escribe" y "prueba" en un solo agente habría dejado a quien implementa validando su propio trabajo; quitar el auditor habría dejado la gobernanza en una lista de buenas intenciones sin autoridad para hacerlas cumplir (ver más abajo). Un sexto agente no tenía responsabilidad propia que asignarle sin invadir la de otro.
 
 | Agente | Rol | Regla más importante que lo gobierna |
 |---|---|---|
-| [`arquitecto-backend`](../.claude/agents/arquitecto-backend.md) | Dominio, aplicación e infraestructura del backend | El dominio no importa nada de framework; dinero siempre en `Cents` enteros |
+| [`desarrollador-backend`](../.claude/agents/desarrollador-backend.md) | Dominio, aplicación e infraestructura del backend | El dominio no importa nada de framework; dinero siempre en `Cents` enteros |
 | [`desarrollador-frontend`](../.claude/agents/desarrollador-frontend.md) | Componentes React y estado del carrito | El frontend nunca calcula precios; ningún `dispatch` durante el render (ver corrección #1 abajo — es la regla que ese error real generó) |
-| [`ingeniero-pruebas-backend`](../.claude/agents/ingeniero-pruebas-backend.md) | Motor de descuentos, casos de uso, adaptadores | Property-based testing para invariantes; el adaptador Postgres se prueba contra una base real, nunca con mocks de `pg` |
-| [`ingeniero-pruebas-frontend`](../.claude/agents/ingeniero-pruebas-frontend.md) | Reducer y componentes | La alerta del 35% se verifica por su texto exacto y su `role="alert"` — no se aprueba una paráfrasis |
+| [`tester-backend`](../.claude/agents/tester-backend.md) | Motor de descuentos, casos de uso, adaptadores | Property-based testing para invariantes; el adaptador Postgres se prueba contra una base real, nunca con mocks de `pg` |
+| [`tester-frontend`](../.claude/agents/tester-frontend.md) | Reducer y componentes | La alerta del 35% se verifica por su texto exacto y su `role="alert"` — no se aprueba una paráfrasis |
 | [`auditor-calidad`](../.claude/agents/auditor-calidad.md) ★ | **Crítico adversarial. No escribe código.** | Puede rechazar el trabajo de los otros cuatro; exige justificación de cada patrón de diseño usado |
+
+**En palabras simples, qué hace cada uno:**
+
+- **`desarrollador-backend`**: se encarga de todo el backend (`apps/backend/src/`) con buenas prácticas, principios SOLID y arquitectura hexagonal estricta. El dominio no puede importar nada de Express ni de la base de datos (cero fugas), el dinero siempre se maneja en centavos enteros (nunca decimales, para no perder precisión), y agregar una regla de descuento nueva no debe tocar el motor existente (principio Open/Closed).
+- **`desarrollador-frontend`**: se encarga de toda la parte visible del proyecto (React) — componentes, estado del carrito y consumo de la API. Nunca calcula precios ni descuentos, solo muestra lo que el backend ya calculó. El estado del carrito vive en un patrón Observer (un único punto de verdad que notifica a todos los componentes cuando cambia). Se conecta al backend respetando también un límite hexagonal: todo pasa por un único adaptador (`api/client.ts`), nunca llamadas sueltas dentro de un componente. Exige además accesibilidad real (etiquetas para lectores de pantalla), la identidad visual de la marca ficticia "Soultec", y que la app nunca se quede en blanco silenciosamente si algo falla o está cargando.
+- **`tester-backend`**: escribe y mantiene las pruebas del motor de descuentos, los casos de uso y el adaptador de base de datos. Su enfoque es matemático: usa pruebas basadas en propiedades (`fast-check`) para verificar reglas que deben cumplirse siempre — por ejemplo, que el descuento nunca supera el 35%, o que la suma de lo repartido siempre cuadra con el total, sin importar qué carrito le pases. El adaptador de Postgres se prueba contra una base de datos real, nunca simulada.
+- **`tester-frontend`**: escribe y mantiene las pruebas del reducer del carrito y de los componentes visuales, con foco en interacción de usuario y accesibilidad (no en matemáticas, eso es del `tester-backend`). Prueba con consultas accesibles (como si fuera un lector de pantalla, no seleccionando por clases CSS), y verifica la alerta del 35% por su texto exacto, no una versión parecida.
+- **`auditor-calidad`**: el único que no escribe código — solo revisa el trabajo de los otros cuatro y da un veredicto: aprobado o rechazado con razones concretas. Exige que cada patrón de diseño usado tenga una justificación real, que no haya fugas del dominio hacia el framework, que no exista dinero en decimales, y que el código y la documentación (`arquitectura.md`) nunca digan cosas distintas. Es la pieza que convierte la gobernanza de IA en un proceso con autoridad real, no en una lista de buenas intenciones. 
+
 
 **Por qué `auditor-calidad` es la pieza que vale la pena defender en la sustentación:** convierte la gobernanza de IA en un proceso con autoridad real, no en una lista de buenas intenciones. Sus reglas de rechazo automático (fuga de la capa de dominio, `any` sin justificación, dinero en `number` decimal, divergencia entre código y `docs/arquitectura.md`) son exactamente los errores que, si se hubieran cometido, habrían pasado desapercibidos en una revisión superficial de "¿pasan los tests?".
 
@@ -81,3 +83,6 @@ La función promete que la suma de lo repartido siempre cuadra con el total. El 
 ### Por qué estas correcciones importan más que "la IA se equivocó y alguien lo notó"
 
 Ninguna de las siete se atrapó por relectura visual del código antes de ejecutarlo. Las correcciones #1-5 y #7 se atraparon porque algo real falló (un test, un build, un contenedor, y en el caso de #7, **el mismo test con una semilla aleatoria distinta en CI**) y la metodología del candidato prohíbe declarar una fase terminada sin haber corrido el comando real y leído su salida — incluyendo, especialmente, después de fusionarse a `integration`. La #6 se atrapó porque la gobernanza incluye una auditoría de seguridad *dirigida*, no solo pruebas funcionales. Esa disciplina — no la inteligencia para prevenir el error de antemano — es la garantía real de calidad de este proceso, y es reproducible en cualquier proyecto futuro que use la misma metodología.
+
+**Estimado honesto de origen del código:** ~100% generado por el agente en esta sesión de ejecución; 0% escrito a mano línea por línea por mi en este repositorio. 
+Mi aporte está en la directiva previa (diseño) planeación y revisión de  código, entendimiento del mismo y asi mismo corregirlos.

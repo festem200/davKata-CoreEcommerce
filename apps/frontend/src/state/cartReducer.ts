@@ -6,9 +6,9 @@ export interface CartState {
 }
 
 export type CartAction =
-  | { type: "ADD_PRODUCT"; productId: string }
-  | { type: "REMOVE_PRODUCT"; productId: string }
-  | { type: "SET_QUANTITY"; productId: string; quantity: number }
+  | { type: "ADD_PRODUCT"; productId: number }
+  | { type: "REMOVE_PRODUCT"; productId: number }
+  | { type: "SET_QUANTITY"; productId: number; quantity: number }
   | { type: "CLEAR_CART" }
   | { type: "APPLY_COUPON"; couponCode: string }
   | { type: "CLEAR_COUPON" };
@@ -18,7 +18,7 @@ export const INITIAL_CART_STATE: CartState = {
   couponCode: null,
 };
 
-function setQuantity(lines: readonly CartLineDto[], productId: string, quantity: number): CartLineDto[] {
+function setQuantity(lines: readonly CartLineDto[], productId: number, quantity: number): CartLineDto[] {
   if (quantity <= 0) {
     return lines.filter((line) => line.productId !== productId);
   }

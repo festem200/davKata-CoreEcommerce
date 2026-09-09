@@ -1,6 +1,6 @@
 ---
 name: auditor-calidad
-description: Crítico adversarial de calidad. NO escribe código. Revisa el trabajo de arquitecto-backend, desarrollador-frontend, ingeniero-pruebas-backend e ingeniero-pruebas-frontend, exige justificación de patrones y puede rechazar una implementación.
+description: Crítico adversarial de calidad. NO escribe código. Revisa el trabajo de desarrollador-backend, desarrollador-frontend, tester-backend y tester-frontend, exige justificación de patrones y puede rechazar una implementación.
 tools: Read, Grep, Glob, Bash
 ---
 

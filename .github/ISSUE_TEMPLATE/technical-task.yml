@@ -1,0 +1,38 @@
+name: Tarea técnica
+description: Registrar una tarea de ingeniería, documentación, seguridad o infraestructura.
+title: "TASK: "
+labels:
+  - type:technical-task
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe el resultado técnico esperado y cómo se verificará.
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: Objetivo
+      description: ¿Qué resultado concreto debe quedar?
+    validations:
+      required: true
+  - type: textarea
+    id: alcance
+    attributes:
+      label: Alcance y fuera de alcance
+      description: Aclara qué se toca y qué queda fuera.
+    validations:
+      required: true
+  - type: textarea
+    id: verificacion
+    attributes:
+      label: Verificación
+      description: Comandos, pruebas o evidencia que permiten aceptar la tarea.
+    validations:
+      required: true
+  - type: textarea
+    id: riesgos
+    attributes:
+      label: Riesgos y decisiones
+      description: Registra dependencias, riesgos y decisiones relevantes.
+    validations:
+      required: false

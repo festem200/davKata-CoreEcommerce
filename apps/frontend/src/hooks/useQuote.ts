@@ -19,12 +19,15 @@ export function useQuote(cart: CartState): UseQuoteResult {
   const [quote, setQuote] = useState<QuoteResultDto | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isEmpty = cart.lines.length === 0;
 
+  // El carrito vacío no necesita el efecto: es estado derivado directo del
+  // render, no algo que sincronizar con un sistema externo (evita el
+  // patrón que react-hooks/set-state-in-effect marca — setState síncrono
+  // dentro del efecto solo para "resetear" — y elimina un ciclo de render
+  // de retraso entre vaciar el carrito y que se refleje en pantalla).
   useEffect(() => {
-    if (cart.lines.length === 0) {
-      setQuote(null);
-      setError(null);
-      setLoading(false);
+    if (isEmpty) {
       return;
     }
 
@@ -56,7 +59,11 @@ export function useQuote(cart: CartState): UseQuoteResult {
       cancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [cart.lines, cart.couponCode]);
+  }, [cart.lines, cart.couponCode, isEmpty]);
+
+  if (isEmpty) {
+    return { quote: null, loading: false, error: null };
+  }
 
   return { quote, loading, error };
 }

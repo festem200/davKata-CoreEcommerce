@@ -1,6 +1,7 @@
 {
   "name": "core-ecommerce",
   "private": true,
+  "type": "module",
   "version": "1.0.0",
   "description": "Core E-Commerce Checkout con motor de descuentos acumulativos - Prueba técnica Especialista I Open Banking",
   "workspaces": [
@@ -19,9 +20,14 @@
     "test:coverage": "npm run test:coverage --workspaces --if-present"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",
+    "eslint": "^10.10.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^15.15.0",
     "typescript": "^5.7.2",
+    "typescript-eslint": "^8.70.0",
     "vitest": "^3.2.4"
   }
 }

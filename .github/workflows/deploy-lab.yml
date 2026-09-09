@@ -39,7 +39,6 @@ jobs:
           done
 
           docker run -d --name smoke-app --network smoke-test-net -p 8080:8080 \
-            -e PERSISTENCE_DRIVER=postgres \
             -e DATABASE_URL=postgres://postgres:postgres@smoke-postgres:5432/core_ecommerce \
             -e ORDERS_API_KEY=smoke-test-key \
             core-ecommerce:smoke-test
@@ -50,7 +49,7 @@ jobs:
           done
 
           curl -sf http://localhost:8080/health
-          curl -sf http://localhost:8080/api/v1/products | grep -q '"id":"p1"'
+          curl -sf http://localhost:8080/api/v1/products | grep -q '"id":1'
 
       - name: Logs del contenedor (diagnóstico si algo falla)
         if: failure()

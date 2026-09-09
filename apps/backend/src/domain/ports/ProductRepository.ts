@@ -2,7 +2,7 @@ import type { CartLine } from "../model/CartLine.js";
 import type { Product } from "../model/Product.js";
 
 export interface StockShortage {
-  readonly productId: string;
+  readonly productId: number;
   readonly requested: number;
   readonly available: number;
 }
@@ -14,7 +14,7 @@ export interface StockShortage {
  */
 export interface ProductRepository {
   findAll(): Promise<readonly Product[]>;
-  findById(productId: string): Promise<Product | null>;
+  findById(productId: number): Promise<Product | null>;
 
   /**
    * Decrementa el stock de TODAS las líneas en una sola operación

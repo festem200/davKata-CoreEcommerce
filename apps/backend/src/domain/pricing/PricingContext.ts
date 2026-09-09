@@ -5,7 +5,7 @@ import { InvalidCartLineError, ProductNotFoundError } from "../model/errors.js";
 import { sumCents } from "../model/Money.js";
 
 export interface PricedLine {
-  readonly productId: string;
+  readonly productId: number;
   readonly category: string;
   readonly quantity: number;
   readonly unitPriceCents: Cents;
@@ -17,7 +17,7 @@ export interface AppliedDiscount {
   readonly ruleId: string;
   readonly label: string;
   readonly amountCents: Cents;
-  readonly perLineAmountsCents: ReadonlyMap<string, Cents>;
+  readonly perLineAmountsCents: ReadonlyMap<number, Cents>;
 }
 
 export interface PricingContext {
@@ -28,7 +28,7 @@ export interface PricingContext {
   readonly couponCode: string | null;
 }
 
-function findProduct(products: readonly Product[], productId: string): Product {
+function findProduct(products: readonly Product[], productId: number): Product {
   const product = products.find((candidate) => candidate.id === productId);
 
   if (!product) {

@@ -9,7 +9,7 @@ Skill/metodología propia, usada para construir este repositorio completo desde 
 
 ## Las tres capas
 
-1. **Directiva** (`directives/plan_maestro_prueba_tecnica.md`, fuera de este repositorio, en el directorio de trabajo del candidato): el SOP completo de la prueba técnica — arquitectura, decisiones, fases, presupuesto de tiempo, orden de corte si hay que recortar. Escrito en lenguaje natural, como instrucciones a un empleado de nivel medio.
+1. **Directiva** ([`docs/reference/plan-maestro-core-ecommerce.md`](../../../docs/reference/plan-maestro-core-ecommerce.md), versionada en este repositorio): el SOP completo de la prueba técnica, escrito antes de tocar código — arquitectura, decisiones, fases, presupuesto de tiempo, orden de corte si hay que recortar. Escrito en lenguaje natural, como instrucciones a un empleado de nivel medio.
 2. **Orquestación**: el agente (Claude Code) lee la directiva, decide en qué fase está el proyecto revisando el estado real en disco (no confía ciegamente en lo que la directiva dice que "ya se hizo"), y ejecuta la fase que corresponde.
 3. **Ejecución**: código determinista real — cada PR de este repositorio es una unidad de ejecución verificada externamente (typecheck + tests + cobertura, y en varios casos verificación manual contra un servidor real o un contenedor Docker real) antes de fusionarse.
 

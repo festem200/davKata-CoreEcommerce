@@ -1,5 +1,5 @@
 export class ProductNotFoundError extends Error {
-  constructor(public readonly productId: string) {
+  constructor(public readonly productId: number) {
     super(`El producto '${productId}' no existe en el catálogo`);
     this.name = "ProductNotFoundError";
   }
@@ -7,7 +7,7 @@ export class ProductNotFoundError extends Error {
 
 export class InvalidCartLineError extends Error {
   constructor(
-    public readonly productId: string,
+    public readonly productId: number,
     public readonly quantity: number,
   ) {
     super(`La cantidad '${quantity}' para el producto '${productId}' no es válida: debe ser un entero mayor a 0`);
@@ -30,7 +30,7 @@ export class CouponExpiredError extends Error {
 }
 
 export class OrderNotFoundError extends Error {
-  constructor(public readonly orderId: string) {
+  constructor(public readonly orderId: number) {
     super(`La orden '${orderId}' no existe`);
     this.name = "OrderNotFoundError";
   }
