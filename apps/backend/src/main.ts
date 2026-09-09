@@ -28,7 +28,20 @@ async function createRepositories(): Promise<{
   coupons: ReadonlyMap<string, Coupon>;
 }> {
   const { Pool } = await import("pg");
-  const pool = new Pool({ connectionString: env.DATABASE_URL });
+  // RDS exige TLS por defecto (pg_hba.conf rechaza conexiones sin cifrar);
+  // Postgres local/CI no tiene TLS configurado — de ahí DATABASE_SSL en vez
+  // de NODE_ENV (ver env.ts: el Dockerfile hornea NODE_ENV=production en
+  // toda imagen de este proyecto, incluida la que corre el smoke test
+  // local de deploy-lab.yml). `rejectUnauthorized: false` es aceptable
+  // aquí: el tráfico va cifrado igual, solo no valida la cadena de
+  // certificados de RDS contra una CA — evita depender del bundle de CA de
+  // Amazon en la imagen por una diferencia que no cambia la superficie de
+  // ataque real (la RDS ya está en una subred privada, no accesible
+  // públicamente).
+  const pool = new Pool({
+    connectionString: env.DATABASE_URL,
+    ssl: env.DATABASE_SSL ? { rejectUnauthorized: false } : undefined,
+  });
   await applySchema(pool);
   await seedProductsIfEmpty(pool, CATALOG);
 
